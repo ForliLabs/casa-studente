@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
+import { ToastProvider } from "@/components/toast";
 import { getCurrentUser } from "@/lib/auth";
 import "./globals.css";
 
@@ -43,6 +44,8 @@ const navItems = [
   { label: "Home", href: "/" },
   { label: "Annunci", href: "/listings" },
   { label: "Coinquilini", href: "/roommates" },
+  { label: "Quartieri", href: "/neighborhoods" },
+  { label: "Comunità", href: "/community" },
   { label: "Dashboard", href: "/dashboard" },
 ];
 
@@ -59,18 +62,20 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-white text-gray-950">
-        <Navbar
-          brand="CasaStudente"
-          items={navItems}
-          ctaLabel={user ? undefined : "Pubblica annuncio"}
-          ctaHref={user ? undefined : "/auth/register"}
-          user={user ? { name: user.name, email: user.email, role: user.role } : null}
-        />
-        <div className="flex flex-1 flex-col">{children}</div>
-        <Footer
-          brand="CasaStudente"
-          tagline="Alloggi verificati e strumenti digitali per vivere Forlì da studenti."
-        />
+        <ToastProvider>
+          <Navbar
+            brand="CasaStudente"
+            items={navItems}
+            ctaLabel={user ? undefined : "Pubblica annuncio"}
+            ctaHref={user ? undefined : "/auth/register"}
+            user={user ? { name: user.name, email: user.email, role: user.role } : null}
+          />
+          <div className="flex flex-1 flex-col">{children}</div>
+          <Footer
+            brand="CasaStudente"
+            tagline="Alloggi verificati e strumenti digitali per vivere Forlì da studenti."
+          />
+        </ToastProvider>
       </body>
     </html>
   );
