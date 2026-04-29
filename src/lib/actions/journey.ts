@@ -8,6 +8,7 @@ import {
   type JourneyStage,
   type RentalJourney,
 } from "@/lib/stores/journey";
+import { executeWorkflowTriggers, detectStaleJourneys } from "@/lib/stores/workflow";
 
 function generateId(): string {
   return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -71,11 +72,19 @@ export async function advanceJourneyAction(formData: FormData): Promise<void> {
 
   if (!canTransition(journey.stage, nextStage)) return;
 
+  const fromStage = journey.stage;
   const now = new Date().toISOString();
   await journeyStore.update(journeyId, {
     stage: nextStage,
     stageHistory: [...journey.stageHistory, { stage: nextStage, timestamp: now, note: note || undefined }],
     updatedAt: now,
+  });
+
+  // Execute workflow triggers for this transition
+  await executeWorkflowTriggers(journeyId, fromStage, nextStage, {
+    studentName: journey.studentName,
+    landlordName: journey.landlordName,
+    listingTitle: journey.listingTitle,
   });
 
   revalidatePath("/dashboard/journey");
@@ -93,4 +102,47 @@ export async function getMyJourneys() {
   } else {
     return journeyStore.findAll();
   }
+}
+
+export async function checkStaleJourneys() {
+  const allJourneys = await journeyStore.findAll();
+  return detectStaleJourneys(
+    allJourneys.map((j) => ({
+      id: j.id,
+      studentName: j.studentName,
+      listingTitle: j.listingTitle,
+      stage: j.stage,
+      updatedAt: j.updatedAt,
+    }))
+  );
+}
+
+export async function getJourneyFunnelAnalytics() {
+  const allJourneys = await journeyStore.findAll();
+
+  const stageCounts: Record<string, number> = {};
+  const stageTimings: Record<string, number[]> = {};
+
+  for (const journey of allJourneys) {
+    stageCounts[journey.stage] = (stageCounts[journey.stage] || 0) + 1;
+
+    // Calculate time per stage from history
+    for (let i = 1; i < journey.stageHistory.length; i++) {
+      const prev = journey.stageHistory[i - 1];
+      const curr = journey.stageHistory[i];
+      const days = Math.round(
+        (new Date(curr.timestamp).getTime() - new Date(prev.timestamp).getTime()) / 86400000
+      );
+      if (!stageTimings[prev.stage]) stageTimings[prev.stage] = [];
+      stageTimings[prev.stage].push(days);
+    }
+  }
+
+  const avgTimePerStage = Object.entries(stageTimings).map(([stage, times]) => ({
+    stage,
+    avgDays: Math.round(times.reduce((a, b) => a + b, 0) / times.length),
+    count: times.length,
+  }));
+
+  return { stageCounts, avgTimePerStage, totalJourneys: allJourneys.length };
 }
