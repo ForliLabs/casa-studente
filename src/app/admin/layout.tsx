@@ -1,13 +1,14 @@
 import { requireAdmin } from "@/lib/auth";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { BarChart3, Flag, LayoutDashboard, Shield, Users } from "lucide-react";
+import { BarChart3, Flag, LayoutDashboard, Shield, Users, Activity } from "lucide-react";
 
 const adminNav = [
   { label: "Panoramica", href: "/admin", icon: <LayoutDashboard className="h-5 w-5" /> },
   { label: "Utenti", href: "/admin/users", icon: <Users className="h-5 w-5" /> },
   { label: "Moderazione", href: "/admin/moderation", icon: <Flag className="h-5 w-5" /> },
   { label: "Analytics", href: "/admin/analytics", icon: <BarChart3 className="h-5 w-5" /> },
+  { label: "Marketplace", href: "/admin/marketplace", icon: <Activity className="h-5 w-5" /> },
 ];
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
