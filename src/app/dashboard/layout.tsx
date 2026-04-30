@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { BarChart3, CreditCard, FileText, Home, LayoutDashboard, Map, MessageSquare, Shield, Star } from "lucide-react";
+import { BarChart3, Bell, CreditCard, DollarSign, FileText, Heart, Home, LayoutDashboard, Map, MessageSquare, Shield, Star, TrendingUp, Video } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard";
 
 const items = [
@@ -44,6 +44,31 @@ const items = [
     label: "Conformità",
     href: "/dashboard/compliance",
     icon: <Shield className="h-5 w-5" />,
+  },
+  {
+    label: "Pricing",
+    href: "/dashboard/pricing",
+    icon: <DollarSign className="h-5 w-5" />,
+  },
+  {
+    label: "Insights",
+    href: "/dashboard/insights",
+    icon: <TrendingUp className="h-5 w-5" />,
+  },
+  {
+    label: "Per Te",
+    href: "/dashboard/for-you",
+    icon: <Heart className="h-5 w-5" />,
+  },
+  {
+    label: "Tour",
+    href: "/dashboard/tours",
+    icon: <Video className="h-5 w-5" />,
+  },
+  {
+    label: "Notifiche Hub",
+    href: "/dashboard/notification-hub",
+    icon: <Bell className="h-5 w-5" />,
   },
   {
     label: "Analytics",
