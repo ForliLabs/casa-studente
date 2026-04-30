@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
 import { ToastProvider } from "@/components/toast";
+import { PWAInstallPrompt } from "@/components/pwa-install";
 import { getCurrentUser } from "@/lib/auth";
 import "./globals.css";
 
@@ -30,6 +31,12 @@ export const metadata: Metadata = {
     "affitti universitari Forlì",
     "CasaStudente",
   ],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "CasaStudente",
+  },
   openGraph: {
     title: "CasaStudente | Alloggi per studenti a Forlì",
     description:
@@ -61,6 +68,11 @@ export default async function RootLayout({
       lang="it"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <meta name="theme-color" content="#2563eb" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+      </head>
       <body className="flex min-h-full flex-col bg-white text-gray-950">
         <ToastProvider>
           <Navbar
@@ -75,6 +87,7 @@ export default async function RootLayout({
             brand="CasaStudente"
             tagline="Alloggi verificati e strumenti digitali per vivere Forlì da studenti."
           />
+          <PWAInstallPrompt />
         </ToastProvider>
       </body>
     </html>
