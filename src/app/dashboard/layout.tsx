@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { BarChart3, Bell, CreditCard, DollarSign, FileText, Heart, Home, LayoutDashboard, Map, MessageSquare, Shield, Star, TrendingUp, Video } from "lucide-react";
+import { Accessibility, BarChart3, Bell, Calendar, Code, CreditCard, DollarSign, FileText, Heart, Home, Key, LayoutDashboard, Map, MessageSquare, Scale, Shield, Star, TrendingUp, Users, Video, GraduationCap } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard";
 
 const items = [
@@ -69,6 +69,51 @@ const items = [
     label: "Notifiche Hub",
     href: "/dashboard/notification-hub",
     icon: <Bell className="h-5 w-5" />,
+  },
+  {
+    label: "TenantScore",
+    href: "/dashboard/tenant-score",
+    icon: <Shield className="h-5 w-5" />,
+  },
+  {
+    label: "Assicurazione",
+    href: "/dashboard/insurance",
+    icon: <Shield className="h-5 w-5" />,
+  },
+  {
+    label: "SSO Università",
+    href: "/dashboard/university-sso",
+    icon: <GraduationCap className="h-5 w-5" />,
+  },
+  {
+    label: "Accessibilità",
+    href: "/dashboard/accessibility",
+    icon: <Accessibility className="h-5 w-5" />,
+  },
+  {
+    label: "Controversie",
+    href: "/dashboard/disputes",
+    icon: <Scale className="h-5 w-5" />,
+  },
+  {
+    label: "API Proprietario",
+    href: "/dashboard/landlord-api",
+    icon: <Key className="h-5 w-5" />,
+  },
+  {
+    label: "Previsioni",
+    href: "/dashboard/forecasting",
+    icon: <Calendar className="h-5 w-5" />,
+  },
+  {
+    label: "Gruppi",
+    href: "/dashboard/groups",
+    icon: <Users className="h-5 w-5" />,
+  },
+  {
+    label: "Guida Legale",
+    href: "/dashboard/legal-compliance",
+    icon: <Scale className="h-5 w-5" />,
   },
   {
     label: "Analytics",
