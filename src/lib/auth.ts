@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { InMemoryStore } from "@/lib/db";
-import { hashPasswordSecure, verifyPasswordSecure } from "@/lib/password";
+import { hashPasswordSecure, verifyPasswordSecure, generateCsrfToken } from "@/lib/password";
 
 export type UserRole = "student" | "landlord" | "admin";
 
@@ -26,6 +26,7 @@ export interface Session {
   id: string;
   userId: string;
   expiresAt: string;
+  csrfToken?: string;
 }
 
 export const userStore = new InMemoryStore<User>();
@@ -42,7 +43,7 @@ function legacyHash(password: string): string {
   return `hash_${hash.toString(36)}`;
 }
 
-// Seed demo users (using legacy hash for demo, new registrations use PBKDF2)
+// Seed demo users (using legacy hash for demo, new registrations use bcrypt)
 userStore.seed([
   {
     id: "user-student-1",
@@ -131,7 +132,7 @@ userStore.seed([
 ]);
 
 /** @deprecated Use hashPasswordSecure for new registrations */
-export function hashPassword(password: string): string {
+export function hashPassword(password: string): Promise<string> {
   return hashPasswordSecure(password);
 }
 
@@ -155,7 +156,7 @@ export async function createUser(
     email,
     name,
     role,
-    passwordHash: hashPasswordSecure(password),
+    passwordHash: await hashPasswordSecure(password),
     verified: false,
     createdAt: new Date().toISOString(),
     profileComplete: false,
@@ -176,20 +177,22 @@ export async function authenticateUser(
   const user = users[0];
   if (user.banned) return null;
 
-  if (!verifyPasswordSecure(password, user.passwordHash)) return null;
+  if (!(await verifyPasswordSecure(password, user.passwordHash))) return null;
 
   return user;
 }
 
-export async function createSession(userId: string): Promise<string> {
+export async function createSession(userId: string): Promise<{ sessionId: string; csrfToken: string }> {
+  const csrfToken = generateCsrfToken();
   const session: Session = {
     id: `session-${generateId()}`,
     userId,
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    csrfToken,
   };
 
   await sessionStore.create(session);
-  return session.id;
+  return { sessionId: session.id, csrfToken };
 }
 
 export async function getCurrentUser(): Promise<User | null> {
@@ -239,5 +242,6 @@ export async function logout(): Promise<void> {
   if (sessionId) {
     await sessionStore.delete(sessionId);
     cookieStore.delete("session_id");
+    cookieStore.delete("csrf_token");
   }
 }

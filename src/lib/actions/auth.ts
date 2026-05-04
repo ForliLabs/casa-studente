@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import {
   authenticateUser,
   createSession,
@@ -9,13 +10,46 @@ import {
   logout as logoutUser,
   type UserRole,
 } from "@/lib/auth";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+
+// ============ Zod Schemas ============
+
+const loginSchema = z.object({
+  email: z.string().email("Email non valida").max(255),
+  password: z.string().min(1, "Password obbligatoria").max(128),
+});
+
+const registerSchema = z.object({
+  email: z.string().email("Email non valida").max(255),
+  name: z.string().min(2, "Nome troppo corto").max(100).trim(),
+  password: z.string().min(8, "La password deve avere almeno 8 caratteri").max(128),
+  role: z.enum(["student", "landlord"]).default("student"),
+});
+
+const verifySchema = z.object({
+  universityId: z.string().min(1, "Inserisci la matricola universitaria").max(20),
+  documentName: z.string().max(255).optional(),
+});
+
+// ============ Actions ============
 
 export async function loginAction(_prevState: unknown, formData: FormData) {
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
+  const raw = {
+    email: formData.get("email") as string,
+    password: formData.get("password") as string,
+  };
 
-  if (!email || !password) {
-    return { error: "Email e password sono obbligatori" };
+  const result = loginSchema.safeParse(raw);
+  if (!result.success) {
+    return { error: result.error.errors[0].message };
+  }
+
+  const { email, password } = result.data;
+
+  // Rate limit by email
+  const { allowed } = checkRateLimit(`auth:${email}`, RATE_LIMITS.auth);
+  if (!allowed) {
+    return { error: "Troppi tentativi. Riprova tra 15 minuti." };
   }
 
   const user = await authenticateUser(email, password);
@@ -23,7 +57,7 @@ export async function loginAction(_prevState: unknown, formData: FormData) {
     return { error: "Credenziali non valide" };
   }
 
-  const sessionId = await createSession(user.id);
+  const { sessionId, csrfToken } = await createSession(user.id);
   const cookieStore = await cookies();
   cookieStore.set("session_id", sessionId, {
     httpOnly: true,
@@ -32,35 +66,50 @@ export async function loginAction(_prevState: unknown, formData: FormData) {
     path: "/",
     maxAge: 7 * 24 * 60 * 60,
   });
+  cookieStore.set("csrf_token", csrfToken, {
+    httpOnly: false, // Accessible to JS for form submission
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+    maxAge: 7 * 24 * 60 * 60,
+  });
 
   redirect(user.role === "landlord" ? "/dashboard" : "/listings");
 }
 
 export async function registerAction(_prevState: unknown, formData: FormData) {
-  const email = formData.get("email") as string;
-  const name = formData.get("name") as string;
-  const password = formData.get("password") as string;
-  const role = (formData.get("role") as UserRole) || "student";
+  const raw = {
+    email: formData.get("email") as string,
+    name: formData.get("name") as string,
+    password: formData.get("password") as string,
+    role: (formData.get("role") as string) || "student",
+  };
 
-  if (!email || !name || !password) {
-    return { error: "Tutti i campi sono obbligatori" };
+  const result = registerSchema.safeParse(raw);
+  if (!result.success) {
+    return { error: result.error.errors[0].message };
   }
 
-  if (password.length < 6) {
-    return { error: "La password deve avere almeno 6 caratteri" };
+  const { email, name, password, role } = result.data;
+
+  const userResult = await createUser(email, name, password, role as UserRole);
+  if ("error" in userResult) {
+    return { error: userResult.error };
   }
 
-  const result = await createUser(email, name, password, role);
-  if ("error" in result) {
-    return { error: result.error };
-  }
-
-  const sessionId = await createSession(result.id);
+  const { sessionId, csrfToken } = await createSession(userResult.id);
   const cookieStore = await cookies();
   cookieStore.set("session_id", sessionId, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
+    path: "/",
+    maxAge: 7 * 24 * 60 * 60,
+  });
+  cookieStore.set("csrf_token", csrfToken, {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
     path: "/",
     maxAge: 7 * 24 * 60 * 60,
   });
@@ -74,12 +123,17 @@ export async function logoutAction() {
 }
 
 export async function verifyUniversityAction(_prevState: unknown, formData: FormData) {
-  const universityId = formData.get("universityId") as string;
-  const documentName = formData.get("documentName") as string;
+  const raw = {
+    universityId: formData.get("universityId") as string,
+    documentName: formData.get("documentName") as string,
+  };
 
-  if (!universityId) {
-    return { error: "Inserisci la matricola universitaria" };
+  const result = verifySchema.safeParse(raw);
+  if (!result.success) {
+    return { error: result.error.errors[0].message };
   }
+
+  const { universityId, documentName } = result.data;
 
   return {
     success: true,
