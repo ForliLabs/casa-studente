@@ -1,7 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// CasaStudente — Full Prisma Schema (Iteration 5)
+// Covers all 22 store modules and 57 features
 
 generator client {
   provider = "prisma-client"
@@ -9,13 +7,616 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
+}
+
+// ============ AUTH & USERS ============
+
+enum UserRole {
+  student
+  landlord
+  admin
 }
 
 model User {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  name                String
+  role                UserRole  @default(student)
+  passwordHash        String
+  verified            Boolean   @default(false)
+  universityId        String?
+  universityDocument  String?
+  profileComplete     Boolean   @default(false)
+  onboardingComplete  Boolean   @default(false)
+  campusId            String?
+  banned              Boolean   @default(false)
+  banReason           String?
+  stripeCustomerId    String?
+  stripeAccountId     String?
+  locale              String    @default("it")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  sessions            Session[]
+  listings            Listing[]
+  sentMessages        Message[]         @relation("sender")
+  conversationUsers   ConversationUser[]
+  roommateProfile     RoommateProfile?
+  reviewsWritten      Review[]          @relation("reviewer")
+  reviewsReceived     Review[]          @relation("reviewee")
+  paymentsSent        Payment[]         @relation("payer")
+  paymentsReceived    Payment[]         @relation("recipient")
+  leasesAsTenant      LeaseContract[]   @relation("tenant")
+  leasesAsLandlord    LeaseContract[]   @relation("landlord")
+  notifications       Notification[]
+  savedSearches       SavedSearch[]
+  documents           Document[]
+  journeyState        JourneyState?
+  onboardingProgress  OnboardingProgress?
+  communityPosts      CommunityPost[]
+  tenantScore         TenantScore?
+  insurancePolicies   InsurancePolicy[]
+  disputes            Dispute[]         @relation("disputeFiler")
+  disputesAgainst     Dispute[]         @relation("disputeAgainst")
+  housingGroupMembers HousingGroupMember[]
+  telemetryEvents     TelemetryEvent[]
+  tourBookings        TourBooking[]
+  files               UploadedFile[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Session {
   id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
+  userId    String
+  expiresAt DateTime
+  csrfToken String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ============ LISTINGS ============
+
+enum ListingType {
+  stanza_singola
+  stanza_doppia
+  monolocale
+  bilocale
+}
+
+enum ListingStatus {
+  disponibile
+  in_trattativa
+  affittato
+}
+
+model Listing {
+  id             String        @id @default(cuid())
+  title          String
+  address        String
+  neighborhood   String
+  zone           String
+  type           ListingType
+  price          Float
+  deposit        Float
+  utilities      String
+  size           Float
+  rooms          Int           @default(1)
+  bathrooms      Int           @default(1)
+  floor          String
+  availableFrom  String
+  status         ListingStatus @default(disponibile)
+  verified       Boolean       @default(false)
+  virtualTour    Boolean       @default(false)
+  securePayments Boolean       @default(true)
+  furnished      Boolean       @default(true)
+  photos         String[]
+  features       String[]
+  description    String        @default("")
+  nearby         String[]
+  latitude       Float?
+  longitude      Float?
+  landlordId     String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  landlord       User          @relation(fields: [landlordId], references: [id])
+  reviews        Review[]
+  payments       Payment[]
+  leases         LeaseContract[]
+  conversations  Conversation[]
+  tourBookings   TourBooking[]
+  files          UploadedFile[]
+
+  @@index([zone])
+  @@index([type])
+  @@index([price])
+  @@index([landlordId])
+}
+
+// ============ MESSAGING ============
+
+model Conversation {
+  id            String    @id @default(cuid())
+  listingId     String
+  lastMessage   String?
+  lastMessageAt DateTime?
+  createdAt     DateTime  @default(now())
+
+  listing  Listing            @relation(fields: [listingId], references: [id])
+  users    ConversationUser[]
+  messages Message[]
+
+  @@index([listingId])
+}
+
+model ConversationUser {
+  id             String @id @default(cuid())
+  conversationId String
+  userId         String
+  unreadCount    Int    @default(0)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id               String   @id @default(cuid())
+  conversationId   String
+  senderId         String
+  content          String
+  read             Boolean  @default(false)
+  translatedContent String?
+  createdAt        DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("sender", fields: [senderId], references: [id])
+
+  @@index([conversationId])
+  @@index([senderId])
+}
+
+// ============ ROOMMATE MATCHING ============
+
+enum SleepSchedule {
+  early
+  late
+  flexible
+}
+
+enum SocialPreference {
+  quiet
+  social
+  balanced
+}
+
+model RoommateProfile {
+  id               String           @id @default(cuid())
+  userId           String           @unique
+  studyProgram     String
+  languages        String[]
+  budgetMin        Float
+  budgetMax        Float
+  sleepSchedule    SleepSchedule
+  cleanliness      Int
+  socialPreference SocialPreference
+  petTolerant      Boolean          @default(false)
+  smokingTolerant  Boolean          @default(false)
+  bio              String           @default("")
+  lookingForRoommate Boolean        @default(true)
+  preferredZones   String[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ============ REVIEWS & TRUST ============
+
+model Review {
+  id                  String   @id @default(cuid())
+  reviewerId          String
+  revieweeId          String
+  listingId           String
+  ratingOverall       Int
+  ratingCleanliness   Int
+  ratingCommunication Int
+  ratingAccuracy      Int
+  ratingValue         Int
+  comment             String
+  verifiedLease       Boolean  @default(false)
+  flagged             Boolean  @default(false)
+  createdAt           DateTime @default(now())
+
+  reviewer User    @relation("reviewer", fields: [reviewerId], references: [id])
+  reviewee User    @relation("reviewee", fields: [revieweeId], references: [id])
+  listing  Listing @relation(fields: [listingId], references: [id])
+
+  @@index([revieweeId])
+  @@index([listingId])
+}
+
+// ============ PAYMENTS & LEASES ============
+
+enum PaymentStatus {
+  pending
+  completed
+  failed
+  refunded
+}
+
+enum PaymentType {
+  rent
+  deposit
+  deposit_return
+  insurance_premium
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  payerId         String
+  recipientId     String
+  listingId       String
+  amount          Float
+  platformFee     Float         @default(0)
+  type            PaymentType
+  status          PaymentStatus @default(pending)
+  month           String?
+  receiptNumber   String?
+  stripePaymentId String?
+  stripeSessionId String?
+  createdAt       DateTime      @default(now())
+
+  payer     User    @relation("payer", fields: [payerId], references: [id])
+  recipient User    @relation("recipient", fields: [recipientId], references: [id])
+  listing   Listing @relation(fields: [listingId], references: [id])
+
+  @@index([payerId])
+  @@index([recipientId])
+  @@index([stripePaymentId])
+}
+
+enum ContractType {
+  transitorio
+  quattro_piu_quattro
+  tre_piu_due
+}
+
+enum TaxRegime {
+  cedolare_secca
+  ordinario
+}
+
+enum LeaseStatus {
+  draft
+  pending_signature
+  active
+  expired
+  terminated
+}
+
+model LeaseContract {
+  id           String       @id @default(cuid())
+  tenantId     String
+  landlordId   String
+  listingId    String
+  address      String
+  monthlyRent  Float
+  deposit      Float
+  startDate    DateTime
+  endDate      DateTime
+  contractType ContractType @default(transitorio)
+  taxRegime    TaxRegime    @default(cedolare_secca)
+  status       LeaseStatus  @default(draft)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  tenant   User    @relation("tenant", fields: [tenantId], references: [id])
+  landlord User    @relation("landlord", fields: [landlordId], references: [id])
+  listing  Listing @relation(fields: [listingId], references: [id])
+
+  @@index([tenantId])
+  @@index([landlordId])
+}
+
+// ============ NOTIFICATIONS ============
+
+enum NotificationType {
+  new_listing
+  message
+  payment
+  review
+  availability
+  system
+  dispute
+  group_invite
+  lease_reminder
+  verification
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean          @default(false)
+  link      String?
+  emailSent Boolean          @default(false)
+  pushSent  Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+model SavedSearch {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  criteriaJson  String   // JSON-encoded criteria
+  notifyEmail   Boolean  @default(true)
+  notifyInApp   Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ============ DOCUMENTS ============
+
+model Document {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  type        String   // lease, identity, academic, etc.
+  fileUrl     String?
+  fileKey     String?
+  mimeType    String?
+  sizeBytes   Int?
+  verified    Boolean  @default(false)
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+// ============ JOURNEY ============
+
+enum JourneyStage {
+  search
+  contact
+  visit
+  apply
+  negotiate
+  sign
+  move_in
+  settled
+}
+
+model JourneyState {
+  id             String       @id @default(cuid())
+  userId         String       @unique
+  currentStage   JourneyStage @default(search)
+  completedSteps String[]     // JSON array of completed step IDs
+  startedAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ============ ONBOARDING ============
+
+model OnboardingProgress {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  currentStep    Int      @default(0)
+  completedSteps String[] // Step IDs
+  formData       String?  // JSON-encoded form data
+  completedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ============ COMMUNITY ============
+
+model CommunityPost {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // story, tip, event, question
+  title     String
+  content   String
+  tags      String[]
+  likes     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([type])
+}
+
+// ============ TENANT SCORING ============
+
+model TenantScore {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  overallScore      Float
+  paymentHistory    Float
+  identityVerified  Float
+  rentalHistory     Float
+  incomeStability   Float
+  socialTrust       Float
+  academicStanding  Float
+  riskTier          String   // low, medium, high
+  lastCalculated    DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ============ INSURANCE ============
+
+enum InsurancePolicyStatus {
+  draft
+  active
+  expired
+  claimed
+  cancelled
+}
+
+model InsurancePolicy {
+  id            String                @id @default(cuid())
+  userId        String
+  leaseId       String?
+  type          String                // rent_guarantee, deposit_protection, contents
+  coverageAmount Float
+  premiumMonthly Float
+  riskTier       String
+  status         InsurancePolicyStatus @default(draft)
+  startDate      DateTime?
+  endDate        DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+// ============ DISPUTES ============
+
+enum DisputeStatus {
+  filed
+  under_review
+  mediation
+  resolved
+  escalated
+  dismissed
+}
+
+model Dispute {
+  id            String        @id @default(cuid())
+  filerId       String
+  againstId     String
+  leaseId       String?
+  category      String        // maintenance, deposit, noise, contract, other
+  title         String
+  description   String
+  evidence      String[]      // File URLs
+  status        DisputeStatus @default(filed)
+  resolution    String?
+  mediatorNotes String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  filer   User @relation("disputeFiler", fields: [filerId], references: [id])
+  against User @relation("disputeAgainst", fields: [againstId], references: [id])
+
+  @@index([filerId])
+  @@index([againstId])
+}
+
+// ============ HOUSING GROUPS ============
+
+model HousingGroup {
+  id          String               @id @default(cuid())
+  name        String
+  description String?
+  maxMembers  Int                  @default(4)
+  budget      Float?
+  targetZones String[]
+  status      String               @default("forming") // forming, searching, applied, housed
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  members HousingGroupMember[]
+}
+
+model HousingGroupMember {
+  id        String   @id @default(cuid())
+  groupId   String
+  userId    String
+  role      String   @default("member") // admin, member
+  joinedAt  DateTime @default(now())
+
+  group HousingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User         @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+}
+
+// ============ TELEMETRY ============
+
+model TelemetryEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  event     String
+  category  String   // navigation, interaction, conversion, error
+  metadata  String?  // JSON
+  sessionId String?
+  page      String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([event])
+  @@index([category])
+  @@index([createdAt])
+}
+
+// ============ TOURS ============
+
+model TourBooking {
+  id        String   @id @default(cuid())
+  userId    String
+  listingId String
+  type      String   // virtual, in_person
+  date      DateTime
+  status    String   @default("scheduled") // scheduled, completed, cancelled
+  notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id])
+  listing Listing @relation(fields: [listingId], references: [id])
+
+  @@index([userId])
+  @@index([listingId])
+}
+
+// ============ FILE STORAGE ============
+
+model UploadedFile {
+  id          String   @id @default(cuid())
+  userId      String
+  listingId   String?
+  fileName    String
+  fileKey     String   @unique
+  fileUrl     String
+  mimeType    String
+  sizeBytes   Int
+  category    String   // listing_photo, document, evidence, profile
+  createdAt   DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id])
+  listing Listing? @relation(fields: [listingId], references: [id])
+
+  @@index([userId])
+  @@index([listingId])
+  @@index([category])
 }
