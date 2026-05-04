@@ -6,11 +6,15 @@ import { type Locale, supportedLocales } from "@/lib/i18n";
 const localeLabels: Record<Locale, string> = {
   it: "🇮🇹 Italiano",
   en: "🇬🇧 English",
+  es: "🇪🇸 Español",
+  fr: "🇫🇷 Français",
 };
 
 const localeFlags: Record<Locale, string> = {
   it: "🇮🇹",
   en: "🇬🇧",
+  es: "🇪🇸",
+  fr: "🇫🇷",
 };
 
 interface LanguageSwitcherProps {
