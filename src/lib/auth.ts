@@ -1,10 +1,27 @@
+/**
+ * Authentication module — user management, session handling, and access control.
+ *
+ * Provides cookie-based session authentication with bcrypt password hashing.
+ * Sessions expire after 7 days and include CSRF tokens for mutation protection.
+ *
+ * @remarks
+ * - New user registrations use bcrypt (cost 12) via {@link hashPasswordSecure}.
+ * - Seed data uses a legacy hash for backward compatibility.
+ * - Role hierarchy: `student` < `landlord` < `admin`.
+ * - `admin` role has implicit access to all `landlord` and `student` routes.
+ *
+ * @module auth
+ */
+
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { InMemoryStore } from "@/lib/db";
 import { hashPasswordSecure, verifyPasswordSecure, generateCsrfToken } from "@/lib/password";
 
+/** User role for role-based access control. */
 export type UserRole = "student" | "landlord" | "admin";
 
+/** Authenticated user record stored in the user store. */
 export interface User {
   id: string;
   email: string;
@@ -22,6 +39,7 @@ export interface User {
   banReason?: string;
 }
 
+/** Server-side session record, linked to a user and stored in sessionStore. */
 export interface Session {
   id: string;
   userId: string;
@@ -140,6 +158,15 @@ function generateId(): string {
   return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/**
+ * Create a new user account with bcrypt-hashed password.
+ *
+ * @param email - User's email address (must be unique).
+ * @param name - Display name.
+ * @param password - Plain-text password (will be hashed with bcrypt cost 12).
+ * @param role - User role (`student` or `landlord`).
+ * @returns The created {@link User}, or `{ error: string }` if email is taken.
+ */
 export async function createUser(
   email: string,
   name: string,
@@ -167,6 +194,16 @@ export async function createUser(
   return user;
 }
 
+/**
+ * Authenticate a user by email and password.
+ *
+ * Supports bcrypt, legacy PBKDF2, and legacy demo hash formats.
+ * Returns `null` if credentials are invalid or the user is banned.
+ *
+ * @param email - The user's email address.
+ * @param password - The plain-text password to verify.
+ * @returns The authenticated {@link User}, or `null` on failure.
+ */
 export async function authenticateUser(
   email: string,
   password: string
@@ -182,6 +219,12 @@ export async function authenticateUser(
   return user;
 }
 
+/**
+ * Create a new session for a user with a 7-day expiry and CSRF token.
+ *
+ * @param userId - The authenticated user's ID.
+ * @returns An object with the `sessionId` and `csrfToken` to set as cookies.
+ */
 export async function createSession(userId: string): Promise<{ sessionId: string; csrfToken: string }> {
   const csrfToken = generateCsrfToken();
   const session: Session = {
@@ -195,6 +238,12 @@ export async function createSession(userId: string): Promise<{ sessionId: string
   return { sessionId: session.id, csrfToken };
 }
 
+/**
+ * Get the currently authenticated user from the session cookie.
+ *
+ * Reads the `session_id` cookie, validates the session hasn't expired,
+ * and returns the associated user. Returns `null` if no valid session exists.
+ */
 export async function getCurrentUser(): Promise<User | null> {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get("session_id")?.value;
@@ -212,6 +261,12 @@ export async function getCurrentUser(): Promise<User | null> {
   return user ?? null;
 }
 
+/**
+ * Require authentication — redirects to login if no valid session.
+ * Use in server components and server actions that need a logged-in user.
+ *
+ * @throws Redirects to `/auth/login` (never returns `null`).
+ */
 export async function requireAuth(): Promise<User> {
   const user = await getCurrentUser();
   if (!user) {
@@ -220,6 +275,12 @@ export async function requireAuth(): Promise<User> {
   return user;
 }
 
+/**
+ * Require a specific role (or admin). Redirects to login if unauthorized.
+ *
+ * @param role - The required role (`student` or `landlord`). Admins always pass.
+ * @throws Redirects to `/auth/login` if user lacks the required role.
+ */
 export async function requireRole(role: UserRole): Promise<User> {
   const user = await requireAuth();
   if (user.role !== role && user.role !== "admin") {
@@ -228,6 +289,11 @@ export async function requireRole(role: UserRole): Promise<User> {
   return user;
 }
 
+/**
+ * Require admin role. Redirects to home if current user is not an admin.
+ *
+ * @throws Redirects to `/` for non-admin users.
+ */
 export async function requireAdmin(): Promise<User> {
   const user = await requireAuth();
   if (user.role !== "admin") {
@@ -236,6 +302,7 @@ export async function requireAdmin(): Promise<User> {
   return user;
 }
 
+/** Destroy the current session and clear auth cookies. */
 export async function logout(): Promise<void> {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get("session_id")?.value;
