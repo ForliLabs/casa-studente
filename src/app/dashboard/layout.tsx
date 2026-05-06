@@ -1,7 +1,29 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Accessibility, BarChart3, Bell, Calendar, Code, CreditCard, DollarSign, FileText, Heart, Home, Key, LayoutDashboard, Map, MessageSquare, Scale, Shield, Star, TrendingUp, Users, Video, GraduationCap } from "lucide-react";
+import {
+  Accessibility,
+  BarChart3,
+  Bell,
+  Calendar,
+  CreditCard,
+  DollarSign,
+  FileText,
+  GraduationCap,
+  Heart,
+  Home,
+  Key,
+  LayoutDashboard,
+  Map,
+  MessageSquare,
+  Orbit,
+  Scale,
+  Shield,
+  Star,
+  TrendingUp,
+  Users,
+  Video,
+} from "lucide-react";
 import { DashboardShell } from "@/components/dashboard";
 
 const items = [
@@ -109,6 +131,11 @@ const items = [
     label: "Gruppi",
     href: "/dashboard/groups",
     icon: <Users className="h-5 w-5" />,
+  },
+  {
+    label: "Moonshots",
+    href: "/dashboard/moonshots",
+    icon: <Orbit className="h-5 w-5" />,
   },
   {
     label: "Guida Legale",
