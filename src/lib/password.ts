@@ -1,4 +1,4 @@
-import { randomBytes, timingSafeEqual } from "crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import bcrypt from "bcryptjs";
 
 const BCRYPT_COST = 12;
@@ -56,7 +56,6 @@ export function verifyCsrfToken(token: string, expected: string): boolean {
 
 // Legacy HMAC verification for backward compatibility with pre-bcrypt hashes
 function verifyLegacyPbkdf2(password: string, storedHash: string): boolean {
-  const { createHmac } = require("crypto");
   const parts = storedHash.split("$");
   if (parts.length !== 4 || parts[0] !== "pbkdf2") return false;
 
