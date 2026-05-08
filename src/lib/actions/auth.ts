@@ -7,8 +7,10 @@ import {
   authenticateUser,
   createSession,
   createUser,
+  getCurrentUser,
   logout as logoutUser,
   type UserRole,
+  userStore,
 } from "@/lib/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
@@ -74,7 +76,7 @@ export async function loginAction(_prevState: unknown, formData: FormData) {
     maxAge: 7 * 24 * 60 * 60,
   });
 
-  redirect(user.role === "landlord" ? "/dashboard" : "/listings");
+  redirect(user.onboardingComplete ? (user.role === "landlord" ? "/dashboard" : "/listings") : "/onboarding");
 }
 
 export async function registerAction(_prevState: unknown, formData: FormData) {
@@ -114,7 +116,7 @@ export async function registerAction(_prevState: unknown, formData: FormData) {
     maxAge: 7 * 24 * 60 * 60,
   });
 
-  redirect(role === "landlord" ? "/dashboard" : "/listings");
+  redirect("/onboarding");
 }
 
 export async function logoutAction() {
@@ -123,9 +125,18 @@ export async function logoutAction() {
 }
 
 export async function verifyUniversityAction(_prevState: unknown, formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { error: "Devi accedere per completare la verifica" };
+  }
+
+  const document = formData.get("document") as File | null;
   const raw = {
     universityId: formData.get("universityId") as string,
-    documentName: formData.get("documentName") as string,
+    documentName:
+      typeof document?.name === "string" && document.name.length > 0
+        ? document.name
+        : ((formData.get("documentName") as string) || ""),
   };
 
   const result = verifySchema.safeParse(raw);
@@ -135,8 +146,15 @@ export async function verifyUniversityAction(_prevState: unknown, formData: Form
 
   const { universityId, documentName } = result.data;
 
+  await userStore.update(user.id, {
+    universityId,
+    universityDocument: documentName || undefined,
+    verified: true,
+    profileComplete: true,
+  });
+
   return {
     success: true,
-    message: `Verifica avviata per matricola ${universityId}. Documento: ${documentName || "non fornito"}. Riceverai conferma via email.`,
+    message: `Verifica completata per matricola ${universityId}. Documento registrato: ${documentName || "non fornito"}. Il badge verificato è ora attivo.`,
   };
 }

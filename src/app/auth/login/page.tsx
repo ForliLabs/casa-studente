@@ -30,6 +30,7 @@ export default function LoginPage() {
               name="email"
               type="email"
               required
+              autoComplete="email"
               className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
               placeholder="nome@studio.unibo.it"
             />
@@ -41,6 +42,7 @@ export default function LoginPage() {
               name="password"
               type="password"
               required
+              autoComplete="current-password"
               className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
               placeholder="••••••••"
             />

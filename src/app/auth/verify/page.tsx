@@ -1,10 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { verifyUniversityAction } from "@/lib/actions/auth";
+import { useToast } from "@/components/toast";
 
 export default function VerifyPage() {
   const [state, formAction, isPending] = useActionState(verifyUniversityAction, null);
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    if (!state) return;
+    if ("success" in state && state.message) showToast(state.message, "success");
+    if ("error" in state && state.error) showToast(state.error, "error");
+  }, [showToast, state]);
 
   return (
     <main className="flex flex-1 items-center justify-center bg-gray-50 py-12">
@@ -34,22 +42,24 @@ export default function VerifyPage() {
             <input
               name="universityId"
               required
+              autoComplete="off"
+              pattern="[0-9]{7,10}"
               className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
               placeholder="Es. 0001234567"
             />
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium text-gray-700">
-              Certificato di iscrizione (nome file)
-            </span>
+            <span className="text-sm font-medium text-gray-700">Certificato di iscrizione</span>
             <input
-              name="documentName"
-              className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
-              placeholder="certificato_iscrizione.pdf"
+              name="document"
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              className="mt-2 block w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700"
             />
+            <input type="hidden" name="documentName" value="" />
             <p className="mt-1 text-xs text-gray-400">
-              In futuro sarà possibile caricare il file direttamente.
+              Carica PDF o immagine del certificato. Se preferisci, puoi inviare il solo numero di matricola.
             </p>
           </label>
 
@@ -58,7 +68,7 @@ export default function VerifyPage() {
             disabled={isPending}
             className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
           >
-            {isPending ? "Verifica in corso..." : "Avvia verifica"}
+            {isPending ? "Verifica in corso..." : "Completa verifica"}
           </button>
         </form>
       </div>

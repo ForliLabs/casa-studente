@@ -29,6 +29,7 @@ export default function RegisterPage() {
             <input
               name="name"
               required
+              autoComplete="name"
               className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
               placeholder="Es. Giulia Bianchi"
             />
@@ -40,6 +41,7 @@ export default function RegisterPage() {
               name="email"
               type="email"
               required
+              autoComplete="email"
               className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
               placeholder="nome@studio.unibo.it"
             />
@@ -51,9 +53,10 @@ export default function RegisterPage() {
               name="password"
               type="password"
               required
-              minLength={6}
+              minLength={8}
+              autoComplete="new-password"
               className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
-              placeholder="Minimo 6 caratteri"
+              placeholder="Minimo 8 caratteri"
             />
           </label>
 
@@ -71,6 +74,9 @@ export default function RegisterPage() {
             </div>
           </fieldset>
 
+          <p className="text-xs text-gray-500">
+            Usa almeno 8 caratteri e completa poi l&apos;onboarding per personalizzare la tua esperienza.
+          </p>
           <button
             type="submit"
             disabled={isPending}
