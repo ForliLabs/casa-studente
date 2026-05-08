@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { notificationStore, savedSearchStore } from "@/lib/stores";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -24,10 +25,10 @@ const typeIcons: Record<string, string> = {
 
 export default async function NotificationsPage() {
   const user = await getCurrentUser();
-  const userId = user?.id || "user-student-1";
+  if (!user) redirect("/auth/login");
 
-  const notifications = await notificationStore.filter((n) => n.userId === userId);
-  const savedSearches = await savedSearchStore.filter((s) => s.userId === userId);
+  const notifications = await notificationStore.filter((n) => n.userId === user.id);
+  const savedSearches = await savedSearchStore.filter((s) => s.userId === user.id);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 

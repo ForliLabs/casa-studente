@@ -14,8 +14,14 @@ function generateId(): string {
 }
 
 export async function markNotificationReadAction(formData: FormData): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+
   const notificationId = formData.get("notificationId") as string;
   if (!notificationId) return;
+
+  const notification = await notificationStore.findById(notificationId);
+  if (!notification || notification.userId !== user.id) return;
 
   await notificationStore.update(notificationId, { read: true });
   revalidatePath("/notifications");
@@ -70,8 +76,14 @@ export async function saveSearchAction(formData: FormData) {
 }
 
 export async function deleteSavedSearchAction(formData: FormData): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+
   const searchId = formData.get("searchId") as string;
   if (!searchId) return;
+
+  const search = await savedSearchStore.findById(searchId);
+  if (!search || search.userId !== user.id) return;
 
   await savedSearchStore.delete(searchId);
   revalidatePath("/notifications");
