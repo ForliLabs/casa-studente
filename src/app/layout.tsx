@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
 import { ToastProvider } from "@/components/toast";
 import { PWAInstallPrompt } from "@/components/pwa-install";
 import { getCurrentUser } from "@/lib/auth";
+import { getLocaleFromCookie } from "@/lib/i18n";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -47,7 +49,7 @@ export const metadata: Metadata = {
   },
 };
 
-const navItems = [
+const baseNavItems = [
   { label: "Home", href: "/" },
   { label: "Annunci", href: "/listings" },
   { label: "Coinquilini", href: "/roommates" },
@@ -62,10 +64,13 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const user = await getCurrentUser();
+  const cookieStore = await cookies();
+  const currentLocale = getLocaleFromCookie(cookieStore.get("locale")?.value);
+  const navItems = baseNavItems.filter((item) => item.href !== "/dashboard" || Boolean(user));
 
   return (
     <html
-      lang="it"
+      lang={currentLocale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
@@ -73,13 +78,14 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
-      <body className="flex min-h-full flex-col bg-white text-gray-950">
+      <body className="flex min-h-screen flex-col bg-background text-foreground">
         <ToastProvider>
           <Navbar
             brand="CasaStudente"
             items={navItems}
             ctaLabel={user ? undefined : "Pubblica annuncio"}
             ctaHref={user ? undefined : "/auth/register"}
+            currentLocale={currentLocale}
             user={user ? { name: user.name, email: user.email, role: user.role } : null}
           />
           <div className="flex flex-1 flex-col">{children}</div>
