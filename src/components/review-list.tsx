@@ -47,9 +47,13 @@ const badgeLabels = {
 
 function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "lg" }) {
   return (
-    <div className={cn("flex gap-0.5", size === "lg" ? "text-lg" : "text-sm")}>
+    <div
+      role="img"
+      aria-label={`${rating} su 5 stelle`}
+      className={cn("flex gap-0.5", size === "lg" ? "text-lg" : "text-sm")}
+    >
       {[1, 2, 3, 4, 5].map((star) => (
-        <span key={star} className={star <= rating ? "text-amber-500" : "text-gray-300"}>
+        <span key={star} aria-hidden="true" className={star <= rating ? "text-amber-500" : "text-gray-300"}>
           ★
         </span>
       ))}
@@ -121,7 +125,7 @@ export function ReviewList({ reviews, trustScores }: ReviewListProps) {
 
             <p className="mt-4 text-sm leading-6 text-gray-600">{review.comment}</p>
 
-            <div className="mt-4 grid grid-cols-4 gap-3">
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {[
                 { label: "Pulizia", value: review.ratingCleanliness },
                 { label: "Comunicazione", value: review.ratingCommunication },
