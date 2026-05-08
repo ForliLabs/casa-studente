@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { EmptyState } from "@/components/feedback";
 import { sendMessageAction } from "@/lib/actions/messages";
 
 interface Conversation {
@@ -32,14 +33,41 @@ export function MessagesView({ conversations, messagesByConversation }: Messages
   const selectedConv = conversations.find((c) => c.id === selectedId);
   const selectedMessages = messagesByConversation[selectedId] || [];
 
+  if (conversations.length === 0) {
+    return (
+      <EmptyState
+        title="Nessuna conversazione ancora"
+        description="Quando contatterai un proprietario o riceverai una richiesta, la conversazione apparirà qui."
+        actionLabel="Esplora gli annunci"
+        actionHref="/listings"
+      />
+    );
+  }
+
   return (
     <section className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-      {/* Thread list */}
-      <div className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm xl:block">
         <div className="border-b border-gray-200 px-3 pb-4">
           <h2 className="text-lg font-semibold text-gray-900">Thread recenti</h2>
         </div>
-        <div className="mt-3 space-y-2">
+        <div className="mt-4 xl:hidden">
+          <label htmlFor="conversation-select" className="text-sm font-medium text-gray-700">
+            Conversazione attiva
+          </label>
+          <select
+            id="conversation-select"
+            value={selectedId}
+            onChange={(event) => setSelectedId(event.target.value)}
+            className="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
+          >
+            {conversations.map((conversation) => (
+              <option key={conversation.id} value={conversation.id}>
+                {conversation.listingTitle} · {conversation.participantNames.join(" & ")}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="mt-3 hidden space-y-2 xl:block">
           {conversations.map((conv) => (
             <button
               key={conv.id}
@@ -52,9 +80,7 @@ export function MessagesView({ conversations, messagesByConversation }: Messages
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-semibold text-gray-900">
-                    {conv.participantNames.filter((n) => n !== conv.participantNames[0]).join(", ") || conv.participantNames[0]}
-                  </p>
+                  <p className="font-semibold text-gray-900">{conv.participantNames.join(" & ")}</p>
                   <p className="mt-1 text-sm text-gray-500">{conv.listingTitle}</p>
                 </div>
                 <span className="text-xs font-medium uppercase tracking-[0.16em] text-gray-400">
@@ -69,35 +95,26 @@ export function MessagesView({ conversations, messagesByConversation }: Messages
               )}
             </button>
           ))}
-
-          {conversations.length === 0 && (
-            <p className="px-3 py-8 text-center text-sm text-gray-500">
-              Nessuna conversazione ancora.
-            </p>
-          )}
         </div>
       </div>
 
-      {/* Chat view */}
-      <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+      <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
         {selectedConv ? (
           <>
-            <div className="flex items-center justify-between gap-4 border-b border-gray-200 pb-5">
+            <div className="flex flex-col gap-3 border-b border-gray-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-gray-500">Conversazione attiva</p>
                 <h2 className="mt-1 text-2xl font-semibold text-gray-900">
                   {selectedConv.participantNames.join(" & ")}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  Annuncio: {selectedConv.listingTitle}
-                </p>
+                <p className="mt-1 text-sm text-gray-500">Annuncio: {selectedConv.listingTitle}</p>
               </div>
               <span className="rounded-full bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700">
                 Attiva
               </span>
             </div>
 
-            <div className="space-y-4 py-6" style={{ maxHeight: 400, overflowY: "auto" }}>
+            <div className="max-h-[55vh] space-y-4 overflow-y-auto py-6">
               {selectedMessages.map((msg, index) => {
                 const isFirstParticipant = msg.senderName === selectedConv.participantNames[0];
                 return (
@@ -125,8 +142,7 @@ export function MessagesView({ conversations, messagesByConversation }: Messages
               })}
             </div>
 
-            {/* Message composer */}
-            <form action={sendMessageAction} className="flex gap-3">
+            <form action={sendMessageAction} className="flex flex-col gap-3 sm:flex-row">
               <input type="hidden" name="conversationId" value={selectedId} />
               <input
                 name="content"

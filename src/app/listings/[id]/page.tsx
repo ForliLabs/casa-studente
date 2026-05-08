@@ -5,6 +5,7 @@ import { ContactForm } from "@/components/contact-form";
 import { ImageGallery } from "@/components/image-upload";
 import { SingleListingMap } from "@/components/listing-map";
 import { getListingById } from "@/lib/data";
+import { userStore } from "@/lib/auth";
 import { reviewStore, calculateTrustScore } from "@/lib/stores";
 
 interface ListingPageProps {
@@ -35,6 +36,7 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
 
   const listingReviews = await reviewStore.filter((r) => r.listingId === id);
   const landlordReviews = await reviewStore.filter((r) => r.revieweeName === listing.landlord.name);
+  const landlordAccount = (await userStore.filter((user) => user.email === listing.landlord.email))[0] ?? null;
   const trustScore = calculateTrustScore(landlordReviews, listing.verified, 180);
 
   return (
@@ -216,7 +218,13 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
               </div>
             </section>
 
-            <ContactForm listingTitle={listing.title} landlordName={listing.landlord.name} />
+            <ContactForm
+              listingId={listing.id}
+              listingTitle={listing.title}
+              landlordName={listing.landlord.name}
+              landlordEmail={listing.landlord.email}
+              landlordId={landlordAccount?.id}
+            />
 
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900">Azioni rapide</h3>
