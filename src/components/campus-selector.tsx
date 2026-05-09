@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { campusStore, type Campus } from "@/lib/stores/campus";
+import { useEffect, useRef, useState } from "react";
 import { MapPin } from "lucide-react";
+import { campusStore, type Campus } from "@/lib/stores/campus";
+import { useDismissibleLayer } from "@/lib/hooks/use-dismissible-layer";
 
 interface CampusSelectorProps {
   currentCampusId?: string;
@@ -13,6 +14,12 @@ export function CampusSelector({ currentCampusId = "campus-forli", onCampusChang
   const [campuses, setCampuses] = useState<Campus[]>([]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(currentCampusId);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useDismissibleLayer<HTMLDivElement>({
+    isOpen: open,
+    onDismiss: () => setOpen(false),
+    triggerRef,
+  });
 
   useEffect(() => {
     campusStore.findAll().then(setCampuses);
@@ -26,13 +33,21 @@ export function CampusSelector({ currentCampusId = "campus-forli", onCampusChang
     onCampusChange?.(campus);
   };
 
-  if (campuses.length === 0) return null;
+  if (campuses.length === 0) {
+    return (
+      <div className="inline-flex h-10 w-36 animate-pulse rounded-lg border border-gray-200 bg-gray-100" />
+    );
+  }
 
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+        aria-haspopup="listbox"
+        aria-expanded={open}
       >
         <MapPin className="h-4 w-4 text-blue-600" />
         <span>{selectedCampus?.city || "Forlì"}</span>
@@ -42,10 +57,11 @@ export function CampusSelector({ currentCampusId = "campus-forli", onCampusChang
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-72 rounded-xl border border-gray-200 bg-white p-2 shadow-lg">
+        <div ref={menuRef} className="absolute left-0 top-full z-50 mt-1 w-72 rounded-xl border border-gray-200 bg-white p-2 shadow-lg">
           {campuses.map((campus) => (
             <button
               key={campus.id}
+              type="button"
               onClick={() => handleSelect(campus)}
               className={`flex w-full items-start gap-3 rounded-lg p-3 text-left transition ${
                 campus.id === selected ? "bg-blue-50" : "hover:bg-gray-50"

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 interface PricingTier {
@@ -58,17 +59,17 @@ export function PricingSection({ title, subtitle, tiers }: PricingSectionProps) 
                   </li>
                 ))}
               </ul>
-              <a
+              <Link
                 href={tier.ctaHref}
                 className={cn(
-                  "mt-8 block rounded-lg px-4 py-3 text-center text-sm font-semibold",
+                  "mt-8 block rounded-lg px-4 py-3 text-center text-sm font-semibold transition",
                   tier.highlighted
                     ? "bg-blue-600 text-white hover:bg-blue-700"
                     : "border border-gray-300 text-gray-700 hover:bg-gray-50"
                 )}
               >
                 {tier.ctaLabel}
-              </a>
+              </Link>
             </div>
           ))}
         </div>

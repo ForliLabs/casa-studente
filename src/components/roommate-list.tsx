@@ -111,10 +111,11 @@ export function RoommateList({ profiles, hasProfile, isLoggedIn }: RoommateListP
                 </div>
                 <div className="rounded-xl bg-gray-50 p-3">
                   <p className="text-xs text-gray-500">Pulizia</p>
-                  <div className="flex gap-0.5">
+                  <div role="img" aria-label={`${profile.cleanliness} su 5 stelle`} className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <span
                         key={star}
+                        aria-hidden="true"
                         className={star <= profile.cleanliness ? "text-amber-500" : "text-gray-300"}
                       >
                         ★
@@ -148,9 +149,12 @@ export function RoommateList({ profiles, hasProfile, isLoggedIn }: RoommateListP
                 ))}
               </div>
 
-              <button className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">
-                Contatta {profile.name.split(" ")[0]}
-              </button>
+              <Link
+                href={isLoggedIn ? "/dashboard/messages" : "/auth/login"}
+                className="mt-5 block w-full rounded-xl bg-blue-600 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
+              >
+                {isLoggedIn ? `Contatta ${profile.name.split(" ")[0]}` : "Accedi per contattare"}
+              </Link>
             </div>
           </article>
         ))}

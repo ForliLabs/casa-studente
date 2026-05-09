@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useDismissibleLayer } from "@/lib/hooks/use-dismissible-layer";
 
 interface UserMenuProps {
   user: { name: string; email: string; role: string } | null;
@@ -10,6 +11,12 @@ interface UserMenuProps {
 
 export function UserMenu({ user }: UserMenuProps) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useDismissibleLayer<HTMLDivElement>({
+    isOpen: open,
+    onDismiss: () => setOpen(false),
+    triggerRef,
+  });
 
   if (!user) {
     return (
@@ -40,8 +47,12 @@ export function UserMenu({ user }: UserMenuProps) {
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen(!open)}
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen((value) => !value)}
         className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
           {initials}
@@ -50,6 +61,7 @@ export function UserMenu({ user }: UserMenuProps) {
       </button>
 
       <div
+        ref={menuRef}
         className={cn(
           "absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-gray-200 bg-white py-2 shadow-lg",
           open ? "block" : "hidden"

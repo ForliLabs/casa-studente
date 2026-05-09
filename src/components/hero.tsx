@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { type ReactNode } from "react";
 
@@ -40,20 +41,20 @@ export function Hero({
           {(ctaLabel || secondaryLabel) && (
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
               {ctaLabel && ctaHref && (
-                <a
+                <Link
                   href={ctaHref}
-                  className="rounded-xl bg-blue-600 px-8 py-3.5 text-base font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                  className="rounded-xl bg-blue-600 px-8 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                 >
                   {ctaLabel}
-                </a>
+                </Link>
               )}
               {secondaryLabel && secondaryHref && (
-                <a
+                <Link
                   href={secondaryHref}
-                  className="rounded-xl border border-gray-300 bg-white px-8 py-3.5 text-base font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+                  className="rounded-xl border border-gray-300 bg-white px-8 py-3.5 text-base font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
                 >
                   {secondaryLabel}
-                </a>
+                </Link>
               )}
             </div>
           )}
