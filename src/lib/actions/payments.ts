@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, userStore } from "@/lib/auth";
+import { listingStore } from "@/lib/data";
 import { paymentStore, leaseStore, type Payment, type LeaseContract } from "@/lib/stores";
 
 function generateId(): string {
@@ -14,7 +15,6 @@ export async function createPaymentAction(formData: FormData) {
     return { error: "Devi accedere per effettuare un pagamento" };
   }
 
-  const recipientId = formData.get("recipientId") as string;
   const recipientName = formData.get("recipientName") as string;
   const listingId = formData.get("listingId") as string;
   const listingTitle = formData.get("listingTitle") as string;
@@ -22,8 +22,26 @@ export async function createPaymentAction(formData: FormData) {
   const type = formData.get("type") as "rent" | "deposit";
   const month = formData.get("month") as string;
 
+  if (!listingId || !listingTitle || !(type === "rent" || type === "deposit")) {
+    return { error: "Dati pagamento incompleti" };
+  }
+
   if (!amount || amount <= 0) {
     return { error: "Importo non valido" };
+  }
+
+  const listing = await listingStore.findById(listingId);
+  if (!listing) {
+    return { error: "Annuncio non trovato" };
+  }
+
+  if (user.email === listing.landlord.email) {
+    return { error: "Non puoi pagare il tuo stesso annuncio" };
+  }
+
+  const landlordUser = (await userStore.filter((candidate) => candidate.email === listing.landlord.email))[0];
+  if (!landlordUser) {
+    return { error: "Proprietario non trovato" };
   }
 
   const platformFee = Math.round(amount * 0.05);
@@ -33,14 +51,14 @@ export async function createPaymentAction(formData: FormData) {
     id: `pay-${generateId()}`,
     payerId: user.id,
     payerName: user.name,
-    recipientId,
-    recipientName,
+    recipientId: landlordUser.id,
+    recipientName: listing.landlord.name || recipientName,
     listingId,
     listingTitle,
     amount,
     platformFee,
     type,
-    status: "completed",
+    status: "pending",
     month,
     createdAt: new Date().toISOString(),
     receiptNumber,
@@ -48,13 +66,21 @@ export async function createPaymentAction(formData: FormData) {
 
   await paymentStore.create(payment);
   revalidatePath("/dashboard/payments");
-  return { success: true, receiptNumber };
+  return {
+    success: true,
+    receiptNumber,
+    message: "Pagamento creato in stato pending. Confermalo tramite provider prima di considerarlo completato.",
+  };
 }
 
 export async function createLeaseAction(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) {
     return { error: "Devi accedere per creare un contratto" };
+  }
+
+  if (user.role !== "landlord" && user.role !== "admin") {
+    return { error: "Solo i proprietari possono creare contratti" };
   }
 
   const tenantId = formData.get("tenantId") as string;
@@ -69,16 +95,20 @@ export async function createLeaseAction(formData: FormData) {
   const contractType = (formData.get("contractType") as LeaseContract["contractType"]) || "transitorio";
   const taxRegime = (formData.get("taxRegime") as LeaseContract["taxRegime"]) || "cedolare_secca";
 
+  if (!tenantId || !tenantName || !listingId || !listingTitle || !address) {
+    return { error: "Dati contratto incompleti" };
+  }
+
   if (!monthlyRent || !startDate || !endDate) {
     return { error: "Canone, data inizio e data fine sono obbligatori" };
   }
 
   const lease: LeaseContract = {
     id: `lease-${generateId()}`,
-    tenantId: tenantId || user.id,
-    tenantName: tenantName || user.name,
-    landlordId: user.role === "landlord" ? user.id : "",
-    landlordName: user.role === "landlord" ? user.name : "",
+    tenantId,
+    tenantName,
+    landlordId: user.id,
+    landlordName: user.name,
     listingId,
     listingTitle,
     address,
