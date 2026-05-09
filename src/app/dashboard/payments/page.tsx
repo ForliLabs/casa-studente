@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
 import { paymentStore, leaseStore } from "@/lib/stores";
 
 export const metadata: Metadata = {
@@ -41,16 +43,28 @@ const leaseStatusColors: Record<string, string> = {
 };
 
 export default async function DashboardPaymentsPage() {
-  const payments = await paymentStore.findAll();
-  const leases = await leaseStore.findAll();
+  const user = await getCurrentUser();
+  if (!user) redirect("/auth/login");
 
-  const totalPaid = payments
-    .filter((p) => p.status === "completed")
-    .reduce((sum, p) => sum + p.amount, 0);
+  const allPayments = await paymentStore.findAll();
+  const allLeases = await leaseStore.findAll();
 
-  const totalFees = payments
-    .filter((p) => p.status === "completed")
-    .reduce((sum, p) => sum + p.platformFee, 0);
+  const payments = allPayments.filter((payment) => {
+    if (user.role === "admin") return true;
+    if (user.role === "landlord") return payment.recipientId === user.id;
+    return payment.payerId === user.id;
+  });
+
+  const leases = allLeases.filter((lease) => {
+    if (user.role === "admin") return true;
+    if (user.role === "landlord") return lease.landlordId === user.id;
+    return lease.tenantId === user.id;
+  });
+
+  const completedPayments = payments.filter((payment) => payment.status === "completed");
+  const totalAmount = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  const totalFees = completedPayments.reduce((sum, payment) => sum + payment.platformFee, 0);
+  const summaryLabel = user.role === "landlord" ? "Totale ricevuto" : "Totale pagato";
 
   return (
     <div className="space-y-8">
@@ -62,30 +76,28 @@ export default async function DashboardPaymentsPage() {
           Gestione finanziaria
         </h1>
         <p className="mt-3 max-w-3xl text-sm text-gray-600">
-          Visualizza lo storico dei pagamenti, le ricevute e i contratti digitali.
+          Visualizza solo movimenti e contratti collegati al tuo account. I nuovi pagamenti creati manualmente restano in attesa finché non vengono confermati.
         </p>
       </section>
 
-      {/* Summary cards */}
       <div className="grid gap-6 md:grid-cols-3">
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium text-gray-500">Totale pagato</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">€{totalPaid.toLocaleString()}</p>
+          <p className="text-sm font-medium text-gray-500">{summaryLabel}</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">€{totalAmount.toLocaleString()}</p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-medium text-gray-500">Commissioni piattaforma</p>
           <p className="mt-2 text-3xl font-bold text-gray-900">€{totalFees.toLocaleString()}</p>
-          <p className="mt-1 text-xs text-gray-400">5% sul totale</p>
+          <p className="mt-1 text-xs text-gray-400">5% sui pagamenti completati</p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-medium text-gray-500">Contratti attivi</p>
           <p className="mt-2 text-3xl font-bold text-gray-900">
-            {leases.filter((l) => l.status === "active").length}
+            {leases.filter((lease) => lease.status === "active").length}
           </p>
         </div>
       </div>
 
-      {/* Payments table */}
       <section className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-200 px-6 py-4">
           <h2 className="text-lg font-semibold text-gray-900">Storico pagamenti</h2>
@@ -95,6 +107,7 @@ export default async function DashboardPaymentsPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Ricevuta</th>
+                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Controparte</th>
                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Tipo</th>
                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Annuncio</th>
                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Importo</th>
@@ -106,6 +119,9 @@ export default async function DashboardPaymentsPage() {
               {payments.map((payment) => (
                 <tr key={payment.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm font-mono text-gray-900">{payment.receiptNumber}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {user.role === "landlord" ? payment.payerName : payment.recipientName}
+                  </td>
                   <td className="px-6 py-4 text-sm text-gray-600">{typeLabels[payment.type]}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{payment.listingTitle}</td>
                   <td className="px-6 py-4 text-sm font-semibold text-gray-900">€{payment.amount}</td>
@@ -121,8 +137,8 @@ export default async function DashboardPaymentsPage() {
               ))}
               {payments.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-500">
-                    Nessun pagamento registrato.
+                  <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500">
+                    Nessun pagamento registrato per il tuo account.
                   </td>
                 </tr>
               )}
@@ -131,7 +147,6 @@ export default async function DashboardPaymentsPage() {
         </div>
       </section>
 
-      {/* Leases section */}
       <section className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-200 px-6 py-4">
           <h2 className="text-lg font-semibold text-gray-900">Contratti digitali</h2>
@@ -174,19 +189,11 @@ export default async function DashboardPaymentsPage() {
                   <p className="font-semibold text-gray-900 capitalize">{lease.contractType}</p>
                 </div>
               </div>
-              <div className="mt-4 flex gap-3">
-                <button className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50">
-                  Scarica PDF
-                </button>
-                <button className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50">
-                  Report cedolare secca
-                </button>
-              </div>
             </div>
           ))}
           {leases.length === 0 && (
             <div className="p-12 text-center text-sm text-gray-500">
-              Nessun contratto attivo.
+              Nessun contratto collegato al tuo account.
             </div>
           )}
         </div>
