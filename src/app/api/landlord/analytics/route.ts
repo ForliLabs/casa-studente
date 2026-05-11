@@ -1,19 +1,23 @@
-import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { apiError, apiSuccess } from "@/lib/api-response";
 import { listingStore } from "@/lib/data";
 import { conversationStore, paymentStore } from "@/lib/stores";
 
 export async function GET() {
   const user = await getCurrentUser();
   if (!user || (user.role !== "landlord" && user.role !== "admin")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiError("Unauthorized", { status: 401 });
   }
 
-  const listings = (await listingStore.findAll()).filter(
+  const [allListings, conversations, allPayments] = await Promise.all([
+    listingStore.findAll(),
+    conversationStore.findAll(),
+    paymentStore.findAll(),
+  ]);
+  const listings = allListings.filter(
     (listing) => user.role === "admin" || listing.landlord.email === user.email,
   );
-  const conversations = await conversationStore.findAll();
-  const payments = (await paymentStore.findAll()).filter(
+  const payments = allPayments.filter(
     (payment) => user.role === "admin" || payment.recipientId === user.id,
   );
 
@@ -45,5 +49,5 @@ export async function GET() {
         : 0,
   };
 
-  return NextResponse.json({ data: analytics, generatedAt: new Date().toISOString() });
+  return apiSuccess(analytics, { meta: { actorRole: user.role, listingsCount: listings.length } });
 }

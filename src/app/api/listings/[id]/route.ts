@@ -1,3 +1,4 @@
+import { apiError, apiSuccess } from "@/lib/api-response";
 import { getListingById } from "@/lib/data";
 
 interface ListingRouteContext {
@@ -9,8 +10,8 @@ export async function GET(_request: Request, { params }: ListingRouteContext) {
   const listing = await getListingById(id);
 
   if (!listing) {
-    return Response.json({ message: "Annuncio non trovato" }, { status: 404 });
+    return apiError("Annuncio non trovato", { status: 404 });
   }
 
-  return Response.json(listing);
+  return apiSuccess(listing, { meta: { listingId: id } });
 }
