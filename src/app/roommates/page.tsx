@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { roommateStore, calculateCompatibility } from "@/lib/stores";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, userStore } from "@/lib/auth";
+import { roommateStore, calculateCompatibility, type RoommateProfile } from "@/lib/stores";
 import { RoommateList } from "@/components/roommate-list";
 
 export const metadata: Metadata = {
@@ -9,21 +9,23 @@ export const metadata: Metadata = {
 };
 
 export default async function RoommatesPage() {
-  const user = await getCurrentUser();
-  const profiles = await roommateStore.findAll();
+  const [user, profiles, users] = await Promise.all([
+    getCurrentUser(),
+    roommateStore.findAll(),
+    userStore.findAll(),
+  ]);
 
-  // Calculate compatibility scores if user has a profile
-  let currentProfile = null;
-  if (user) {
-    const userProfiles = await roommateStore.filter((p) => p.userId === user.id);
-    currentProfile = userProfiles[0] || null;
-  }
+  const currentProfile = user ? profiles.find((profile) => profile.userId === user.id) || null : null;
+  const userMap = new Map(users.map((candidate) => [candidate.id, candidate]));
 
   const profilesWithScores = profiles
-    .filter((p) => p.userId !== user?.id)
-    .map((p) => ({
-      ...p,
-      compatibility: currentProfile ? calculateCompatibility(currentProfile, p) : null,
+    .filter((profile) => profile.userId !== user?.id)
+    .map((profile) => ({
+      ...profile,
+      recipientId: profile.userId,
+      recipientEmail: userMap.get(profile.userId)?.email || "",
+      compatibility: currentProfile ? calculateCompatibility(currentProfile, profile) : null,
+      matchReasons: buildMatchReasons(currentProfile, profile),
     }))
     .sort((a, b) => (b.compatibility ?? 0) - (a.compatibility ?? 0));
 
@@ -38,8 +40,8 @@ export default async function RoommatesPage() {
             Trova il tuo coinquilino ideale
           </h1>
           <p className="mt-4 text-lg text-gray-600">
-            Scopri profili compatibili con il tuo stile di vita, budget e preferenze. L&apos;algoritmo
-            calcola un punteggio di compatibilità basato su orari, pulizia, socialità e altro.
+            Scopri profili compatibili con il tuo stile di vita, budget e preferenze. Ogni card evidenzia
+            perché il match potrebbe funzionare e ti permette di inviare un&apos;intro in un click.
           </p>
         </div>
 
@@ -53,4 +55,37 @@ export default async function RoommatesPage() {
       </div>
     </main>
   );
+}
+
+function buildMatchReasons(currentProfile: RoommateProfile | null, profile: RoommateProfile) {
+  if (!currentProfile) {
+    return [
+      `Budget indicativo €${profile.budgetMin}-${profile.budgetMax}`,
+      `Zone preferite: ${profile.preferredZones.slice(0, 2).join(", ")}`,
+      `Stile di convivenza: ${profile.socialPreference}`,
+    ];
+  }
+
+  const reasons: string[] = [];
+  const budgetOverlapMin = Math.max(currentProfile.budgetMin, profile.budgetMin);
+  const budgetOverlapMax = Math.min(currentProfile.budgetMax, profile.budgetMax);
+  if (budgetOverlapMin <= budgetOverlapMax) {
+    reasons.push(`Budget compatibile: €${budgetOverlapMin}-${budgetOverlapMax}`);
+  }
+
+  const sharedZones = currentProfile.preferredZones.filter((zone) => profile.preferredZones.includes(zone));
+  if (sharedZones.length > 0) {
+    reasons.push(`Zone in comune: ${sharedZones.slice(0, 2).join(", ")}`);
+  }
+
+  const sharedLanguages = currentProfile.languages.filter((language) => profile.languages.includes(language));
+  if (sharedLanguages.length > 0) {
+    reasons.push(`Lingue condivise: ${sharedLanguages.slice(0, 2).join(", ")}`);
+  }
+
+  if (reasons.length < 3) {
+    reasons.push(`Routine ${profile.sleepSchedule === "early" ? "mattiniera" : profile.sleepSchedule === "late" ? "serale" : "flessibile"}`);
+  }
+
+  return reasons.slice(0, 3);
 }
