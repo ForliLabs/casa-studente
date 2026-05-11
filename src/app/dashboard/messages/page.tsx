@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
 import { conversationStore, messageStore } from "@/lib/stores";
 import { MessagesView } from "@/components/messages-view";
 
@@ -7,18 +9,30 @@ export const metadata: Metadata = {
   description: "Consulta la inbox con le conversazioni tra studenti e proprietari su CasaStudente.",
 };
 
-export default async function DashboardMessagesPage() {
-  const conversations = await conversationStore.findAll();
-  const messages = await messageStore.findAll();
+export default async function DashboardMessagesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ conversation?: string }>;
+}) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/auth/login");
 
-  const sortedConversations = conversations.sort(
+  const [{ conversation: requestedConversation } = {}, conversations, messages] = await Promise.all([
+    searchParams,
+    conversationStore.findAll(),
+    messageStore.findAll(),
+  ]);
+
+  const visibleConversations = conversations.filter((conversation) => conversation.participantIds.includes(user.id));
+  const sortedConversations = visibleConversations.sort(
     (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
   );
 
+  const visibleConversationIds = new Set(sortedConversations.map((conversation) => conversation.id));
   const messagesByConversation: Record<string, typeof messages> = {};
-  for (const conv of conversations) {
-    messagesByConversation[conv.id] = messages
-      .filter((m) => m.conversationId === conv.id)
+  for (const conversation of sortedConversations) {
+    messagesByConversation[conversation.id] = messages
+      .filter((message) => visibleConversationIds.has(message.conversationId) && message.conversationId === conversation.id)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
 
@@ -32,11 +46,13 @@ export default async function DashboardMessagesPage() {
           Conversazioni
         </h1>
         <p className="mt-3 max-w-3xl text-sm text-gray-600">
-          Gestisci domande, richieste di visita e conferme sui tuoi annunci.
+          Vedi solo le conversazioni collegate al tuo account, incluse richieste per annunci, intro coinquilini e follow-up sui tour.
         </p>
       </section>
 
       <MessagesView
+        currentUserId={user.id}
+        initialSelectedId={requestedConversation}
         conversations={sortedConversations}
         messagesByConversation={messagesByConversation}
       />

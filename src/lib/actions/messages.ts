@@ -23,7 +23,7 @@ const startConversationSchema = z.object({
   listingTitle: z.string().min(1).max(200),
   recipientId: z.string().optional(),
   recipientName: z.string().min(1).max(100),
-  recipientEmail: z.string().email(),
+  recipientEmail: z.string().email().optional(),
   content: z.string().min(1, "Il messaggio non può essere vuoto").max(5000),
   senderName: z.string().max(100).optional(),
   senderEmail: z.string().email().optional(),
@@ -36,10 +36,14 @@ const contactLandlordSchema = contactFormSchema.extend({
   recipientEmail: z.string().email(),
 });
 
-async function resolveRecipient(recipientId: string | undefined, recipientEmail: string) {
+async function resolveRecipient(recipientId: string | undefined, recipientEmail?: string) {
   if (recipientId) {
     const byId = await userStore.findById(recipientId);
     if (byId) return byId;
+  }
+
+  if (!recipientEmail) {
+    return null;
   }
 
   const byEmail = await userStore.filter((user) => user.email === recipientEmail);
@@ -146,7 +150,7 @@ export async function sendMessageAction(formData: FormData): Promise<void> {
   revalidatePath("/dashboard/messages");
 }
 
-export async function startConversationAction(formData: FormData) {
+export async function startConversationAction(_prevState: unknown, formData: FormData) {
   const currentUser = await getCurrentUser();
   const raw = {
     listingId: formData.get("listingId"),
@@ -191,7 +195,7 @@ export async function startConversationAction(formData: FormData) {
   );
 
   await sendInquiryNotification(
-    parsed.data.recipientEmail,
+    parsed.data.recipientEmail ?? recipient.email,
     parsed.data.recipientName,
     senderName,
     parsed.data.listingTitle,

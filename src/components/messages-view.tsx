@@ -24,20 +24,31 @@ interface Message {
 }
 
 interface MessagesViewProps {
+  currentUserId: string;
+  initialSelectedId?: string;
   conversations: Conversation[];
   messagesByConversation: Record<string, Message[]>;
 }
 
-export function MessagesView({ conversations, messagesByConversation }: MessagesViewProps) {
-  const [selectedId, setSelectedId] = useState(conversations[0]?.id || "");
-  const selectedConv = conversations.find((c) => c.id === selectedId);
+export function MessagesView({
+  currentUserId,
+  initialSelectedId,
+  conversations,
+  messagesByConversation,
+}: MessagesViewProps) {
+  const initialConversationId =
+    initialSelectedId && conversations.some((conversation) => conversation.id === initialSelectedId)
+      ? initialSelectedId
+      : conversations[0]?.id || "";
+  const [selectedId, setSelectedId] = useState(initialConversationId);
+  const selectedConversation = conversations.find((conversation) => conversation.id === selectedId);
   const selectedMessages = messagesByConversation[selectedId] || [];
 
   if (conversations.length === 0) {
     return (
       <EmptyState
         title="Nessuna conversazione ancora"
-        description="Quando contatterai un proprietario o riceverai una richiesta, la conversazione apparirà qui."
+        description="Quando contatterai un proprietario, riceverai un'intro coinquilino o prenoterai un tour, la conversazione apparirà qui."
         actionLabel="Esplora gli annunci"
         actionHref="/listings"
       />
@@ -68,29 +79,29 @@ export function MessagesView({ conversations, messagesByConversation }: Messages
           </select>
         </div>
         <div className="mt-3 hidden space-y-2 xl:block">
-          {conversations.map((conv) => (
+          {conversations.map((conversation) => (
             <button
-              key={conv.id}
-              onClick={() => setSelectedId(conv.id)}
+              key={conversation.id}
+              onClick={() => setSelectedId(conversation.id)}
               className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
-                conv.id === selectedId
+                conversation.id === selectedId
                   ? "border-blue-200 bg-blue-50"
                   : "border-gray-200 bg-white hover:bg-gray-50"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-semibold text-gray-900">{conv.participantNames.join(" & ")}</p>
-                  <p className="mt-1 text-sm text-gray-500">{conv.listingTitle}</p>
+                  <p className="font-semibold text-gray-900">{conversation.participantNames.join(" & ")}</p>
+                  <p className="mt-1 text-sm text-gray-500">{conversation.listingTitle}</p>
                 </div>
                 <span className="text-xs font-medium uppercase tracking-[0.16em] text-gray-400">
-                  {formatTime(conv.lastMessageAt)}
+                  {formatTime(conversation.lastMessageAt)}
                 </span>
               </div>
-              <p className="mt-3 truncate text-sm leading-6 text-gray-600">{conv.lastMessage}</p>
-              {conv.unreadCount > 0 && (
+              <p className="mt-3 truncate text-sm leading-6 text-gray-600">{conversation.lastMessage}</p>
+              {conversation.unreadCount > 0 && (
                 <span className="mt-3 inline-flex rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
-                  {conv.unreadCount} non letto/i
+                  {conversation.unreadCount} non letto/i
                 </span>
               )}
             </button>
@@ -99,15 +110,15 @@ export function MessagesView({ conversations, messagesByConversation }: Messages
       </div>
 
       <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-        {selectedConv ? (
+        {selectedConversation ? (
           <>
             <div className="flex flex-col gap-3 border-b border-gray-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-gray-500">Conversazione attiva</p>
                 <h2 className="mt-1 text-2xl font-semibold text-gray-900">
-                  {selectedConv.participantNames.join(" & ")}
+                  {selectedConversation.participantNames.join(" & ")}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">Annuncio: {selectedConv.listingTitle}</p>
+                <p className="mt-1 text-sm text-gray-500">Contesto: {selectedConversation.listingTitle}</p>
               </div>
               <span className="rounded-full bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700">
                 Attiva
@@ -115,27 +126,27 @@ export function MessagesView({ conversations, messagesByConversation }: Messages
             </div>
 
             <div className="max-h-[55vh] space-y-4 overflow-y-auto py-6">
-              {selectedMessages.map((msg, index) => {
-                const isFirstParticipant = msg.senderName === selectedConv.participantNames[0];
+              {selectedMessages.map((message, index) => {
+                const isOwnMessage = message.senderId === currentUserId;
                 return (
-                  <div key={msg.id}>
-                    {(index === 0 || selectedMessages[index - 1].senderName !== msg.senderName) && (
-                      <p className={`mb-1 text-xs text-gray-400 ${isFirstParticipant ? "" : "text-right"}`}>
-                        {msg.senderName}
+                  <div key={message.id}>
+                    {(index === 0 || selectedMessages[index - 1].senderName !== message.senderName) && (
+                      <p className={`mb-1 text-xs text-gray-400 ${isOwnMessage ? "text-right" : ""}`}>
+                        {message.senderName}
                       </p>
                     )}
                     <div
                       className={`max-w-xl rounded-3xl px-5 py-4 text-sm leading-6 ${
-                        isFirstParticipant
-                          ? "bg-gray-100 text-gray-700"
-                          : "ml-auto bg-blue-600 text-white"
+                        isOwnMessage
+                          ? "ml-auto bg-blue-600 text-white"
+                          : "bg-gray-100 text-gray-700"
                       }`}
                     >
-                      {msg.content}
+                      {message.content}
                     </div>
-                    <p className={`mt-1 text-xs text-gray-300 ${isFirstParticipant ? "" : "text-right"}`}>
-                      {new Date(msg.createdAt).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
-                      {msg.read && !isFirstParticipant && " ✓✓"}
+                    <p className={`mt-1 text-xs text-gray-300 ${isOwnMessage ? "text-right" : ""}`}>
+                      {new Date(message.createdAt).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
+                      {message.read && isOwnMessage && " ✓✓"}
                     </p>
                   </div>
                 );
