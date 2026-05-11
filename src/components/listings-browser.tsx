@@ -1,8 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/feedback";
+import { NaturalLanguageSearch } from "@/components/nl-search";
+import {
+  applyListingFilters,
+  hasActiveListingFilters,
+  parseListingFiltersFromSearchParams,
+  sortListings,
+  type ListingSortOption,
+} from "@/lib/listings-search";
 import { cn } from "@/lib/utils";
 import type { Listing, ListingType } from "@/lib/data";
 
@@ -18,118 +27,164 @@ const typeOptions: Array<ListingType | "tutti"> = [
   "bilocale",
 ];
 
+const sortOptions: Array<{ value: ListingSortOption; label: string }> = [
+  { value: "recommended", label: "Consigliati" },
+  { value: "price-asc", label: "Prezzo crescente" },
+  { value: "price-desc", label: "Prezzo decrescente" },
+  { value: "availability-soon", label: "Disponibili prima" },
+];
+
 export function ListingsBrowser({ listings }: ListingsBrowserProps) {
-  const [zone, setZone] = useState("");
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
-  const [type, setType] = useState<ListingType | "tutti">("tutti");
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const [virtualTourOnly, setVirtualTourOnly] = useState(false);
-  const [utilitiesIncluded, setUtilitiesIncluded] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentParams = useMemo(() => new URLSearchParams(searchParams.toString()), [searchParams]);
+  const { sort, ...filters } = useMemo(
+    () => parseListingFiltersFromSearchParams(new URLSearchParams(searchParams.toString())),
+    [searchParams]
+  );
 
-  const hasActiveFilters =
-    Boolean(zone) ||
-    Boolean(minPrice) ||
-    Boolean(maxPrice) ||
-    type !== "tutti" ||
-    verifiedOnly ||
-    virtualTourOnly ||
-    utilitiesIncluded;
+  const filteredListings = useMemo(
+    () => sortListings(applyListingFilters(listings, filters), sort),
+    [filters, listings, sort]
+  );
+  const hasActiveFilters = hasActiveListingFilters(filters);
 
-  const filteredListings = useMemo(() => {
-    return listings.filter((listing) => {
-      const matchesZone =
-        zone.length === 0 ||
-        `${listing.zone} ${listing.neighborhood} ${listing.address}`
-          .toLowerCase()
-          .includes(zone.toLowerCase());
-      const matchesMin = minPrice.length === 0 || listing.price >= Number(minPrice);
-      const matchesMax = maxPrice.length === 0 || listing.price <= Number(maxPrice);
-      const matchesType = type === "tutti" || listing.type === type;
-      const matchesVerified = !verifiedOnly || listing.verified;
-      const matchesTour = !virtualTourOnly || listing.virtualTour;
-      const matchesUtilities = !utilitiesIncluded || listing.utilities.toLowerCase().includes("incl");
+  function replaceParams(next: URLSearchParams) {
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }
 
-      return (
-        matchesZone &&
-        matchesMin &&
-        matchesMax &&
-        matchesType &&
-        matchesVerified &&
-        matchesTour &&
-        matchesUtilities
-      );
-    });
-  }, [
-    listings,
-    zone,
-    minPrice,
-    maxPrice,
-    type,
-    verifiedOnly,
-    virtualTourOnly,
-    utilitiesIncluded,
-  ]);
+  function updateTextParam(key: string, value: string) {
+    const next = new URLSearchParams(currentParams.toString());
+    if (value.trim()) next.set(key, value.trim());
+    else next.delete(key);
+    replaceParams(next);
+  }
+
+  function updateBooleanParam(key: string, value: boolean) {
+    const next = new URLSearchParams(currentParams.toString());
+    if (value) next.set(key, "1");
+    else next.delete(key);
+    replaceParams(next);
+  }
+
+  function updateSort(value: ListingSortOption) {
+    const next = new URLSearchParams(currentParams.toString());
+    if (value === "recommended") next.delete("sort");
+    else next.set("sort", value);
+    replaceParams(next);
+  }
 
   function resetFilters() {
-    setZone("");
-    setMinPrice("");
-    setMaxPrice("");
-    setType("tutti");
-    setVerifiedOnly(false);
-    setVirtualTourOnly(false);
-    setUtilitiesIncluded(false);
+    router.replace(pathname);
   }
+
+  function applyNaturalFilters(extracted: Record<string, string | number | boolean>) {
+    const next = new URLSearchParams(currentParams.toString());
+    const textMappings = [
+      ["zone", "zone"],
+      ["type", "type"],
+    ] as const;
+
+    for (const [source, target] of textMappings) {
+      const value = extracted[source];
+      if (typeof value === "string" && value) next.set(target, value);
+    }
+
+    if (typeof extracted.minPrice === "number") next.set("minPrice", String(extracted.minPrice));
+    if (typeof extracted.maxPrice === "number") next.set("maxPrice", String(extracted.maxPrice));
+    if (extracted.verified === true) next.set("verified", "1");
+    if (extracted.virtualTour === true) next.set("virtualTour", "1");
+    replaceParams(next);
+  }
+
+  const chips = [
+    filters.zone ? { label: `Zona: ${filters.zone}`, onRemove: () => updateTextParam("zone", "") } : null,
+    filters.minPrice !== undefined
+      ? { label: `Da €${filters.minPrice}`, onRemove: () => updateTextParam("minPrice", "") }
+      : null,
+    filters.maxPrice !== undefined
+      ? { label: `Fino a €${filters.maxPrice}`, onRemove: () => updateTextParam("maxPrice", "") }
+      : null,
+    filters.type && filters.type !== "tutti"
+      ? { label: filters.type, onRemove: () => updateTextParam("type", "") }
+      : null,
+    filters.verifiedOnly
+      ? { label: "Verificati", onRemove: () => updateBooleanParam("verified", false) }
+      : null,
+    filters.virtualTourOnly
+      ? { label: "Tour virtuale", onRemove: () => updateBooleanParam("virtualTour", false) }
+      : null,
+    filters.utilitiesIncluded
+      ? { label: "Utenze incluse", onRemove: () => updateBooleanParam("utilities", false) }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; onRemove: () => void }>;
 
   return (
     <div className="grid gap-8 lg:grid-cols-[280px_minmax(0,1fr)]">
       <aside className="hidden h-fit rounded-3xl border border-gray-200 bg-white p-6 shadow-sm lg:block">
         <FilterControls
-          zone={zone}
-          minPrice={minPrice}
-          maxPrice={maxPrice}
-          type={type}
-          verifiedOnly={verifiedOnly}
-          virtualTourOnly={virtualTourOnly}
-          utilitiesIncluded={utilitiesIncluded}
-          onZoneChange={setZone}
-          onMinPriceChange={setMinPrice}
-          onMaxPriceChange={setMaxPrice}
-          onTypeChange={setType}
-          onVerifiedOnlyChange={setVerifiedOnly}
-          onVirtualTourOnlyChange={setVirtualTourOnly}
-          onUtilitiesIncludedChange={setUtilitiesIncluded}
+          zone={filters.zone ?? ""}
+          minPrice={filters.minPrice ? String(filters.minPrice) : ""}
+          maxPrice={filters.maxPrice ? String(filters.maxPrice) : ""}
+          type={filters.type ?? "tutti"}
+          verifiedOnly={Boolean(filters.verifiedOnly)}
+          virtualTourOnly={Boolean(filters.virtualTourOnly)}
+          utilitiesIncluded={Boolean(filters.utilitiesIncluded)}
+          sort={sort}
+          onZoneChange={(value) => updateTextParam("zone", value)}
+          onMinPriceChange={(value) => updateTextParam("minPrice", value)}
+          onMaxPriceChange={(value) => updateTextParam("maxPrice", value)}
+          onTypeChange={(value) => updateTextParam("type", value === "tutti" ? "" : value)}
+          onVerifiedOnlyChange={(value) => updateBooleanParam("verified", value)}
+          onVirtualTourOnlyChange={(value) => updateBooleanParam("virtualTour", value)}
+          onUtilitiesIncludedChange={(value) => updateBooleanParam("utilities", value)}
+          onSortChange={updateSort}
           onReset={resetFilters}
         />
       </aside>
 
       <div>
-        <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm lg:hidden">
+        <div className="rounded-3xl border border-blue-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Ricerca assistita</p>
+          <h2 className="mt-2 text-lg font-semibold text-gray-900">Descrivi la casa ideale con parole tue</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Esempio: &ldquo;stanza singola vicino al campus sotto 450€ con tour virtuale&rdquo;.
+          </p>
+          <div className="mt-4">
+            <NaturalLanguageSearch onFiltersExtracted={applyNaturalFilters} />
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm lg:hidden">
           <FilterControls
-            zone={zone}
-            minPrice={minPrice}
-            maxPrice={maxPrice}
-            type={type}
-            verifiedOnly={verifiedOnly}
-            virtualTourOnly={virtualTourOnly}
-            utilitiesIncluded={utilitiesIncluded}
-            onZoneChange={setZone}
-            onMinPriceChange={setMinPrice}
-            onMaxPriceChange={setMaxPrice}
-            onTypeChange={setType}
-            onVerifiedOnlyChange={setVerifiedOnly}
-            onVirtualTourOnlyChange={setVirtualTourOnly}
-            onUtilitiesIncludedChange={setUtilitiesIncluded}
+            zone={filters.zone ?? ""}
+            minPrice={filters.minPrice ? String(filters.minPrice) : ""}
+            maxPrice={filters.maxPrice ? String(filters.maxPrice) : ""}
+            type={filters.type ?? "tutti"}
+            verifiedOnly={Boolean(filters.verifiedOnly)}
+            virtualTourOnly={Boolean(filters.virtualTourOnly)}
+            utilitiesIncluded={Boolean(filters.utilitiesIncluded)}
+            sort={sort}
+            onZoneChange={(value) => updateTextParam("zone", value)}
+            onMinPriceChange={(value) => updateTextParam("minPrice", value)}
+            onMaxPriceChange={(value) => updateTextParam("maxPrice", value)}
+            onTypeChange={(value) => updateTextParam("type", value === "tutti" ? "" : value)}
+            onVerifiedOnlyChange={(value) => updateBooleanParam("verified", value)}
+            onVirtualTourOnlyChange={(value) => updateBooleanParam("virtualTour", value)}
+            onUtilitiesIncludedChange={(value) => updateBooleanParam("utilities", value)}
+            onSortChange={updateSort}
             onReset={resetFilters}
             compact
           />
         </div>
 
-        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-6 flex flex-col gap-4 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Annunci disponibili</h2>
             <p className="text-sm text-gray-500">
-              {filteredListings.length} risultati trovati per il tuo budget a Forlì.
+              {filteredListings.length} risultati su {listings.length} annunci per studenti a Forlì.
             </p>
           </div>
           {hasActiveFilters && (
@@ -143,15 +198,39 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
           )}
         </div>
 
+        {chips.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {chips.map((chip) => (
+              <button
+                key={chip.label}
+                type="button"
+                onClick={chip.onRemove}
+                className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 transition hover:bg-blue-100"
+              >
+                {chip.label} ×
+              </button>
+            ))}
+          </div>
+        )}
+
         {filteredListings.length === 0 ? (
-          <div className="mt-6">
+          <div className="mt-6 space-y-4">
             <EmptyState
               icon="search"
               title="Nessun annuncio corrisponde ai filtri"
-              description="Prova ad allargare il budget, rimuovere qualche filtro o cercare un'altra zona di Forlì."
+              description="Prova ad allargare il budget, rimuovere qualche filtro o usare la ricerca assistita per riformulare la richiesta."
               actionLabel="Cancella i filtri"
               onAction={resetFilters}
             />
+            <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-5 text-sm text-gray-600 shadow-sm">
+              <p className="font-semibold text-gray-900">Suggerimento rapido</p>
+              <p className="mt-2">
+                Se stai cercando un quartiere adatto al tuo stile di vita, prova il quiz dei quartieri per ottenere una shortlist pronta da applicare agli annunci.
+              </p>
+              <Link href="/neighborhoods/quiz" className="mt-4 inline-flex rounded-xl bg-gray-900 px-4 py-2.5 font-semibold text-white transition hover:bg-gray-800">
+                Fai il quiz quartieri
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -243,6 +322,7 @@ interface FilterControlsProps {
   verifiedOnly: boolean;
   virtualTourOnly: boolean;
   utilitiesIncluded: boolean;
+  sort: ListingSortOption;
   compact?: boolean;
   onZoneChange: (value: string) => void;
   onMinPriceChange: (value: string) => void;
@@ -251,6 +331,7 @@ interface FilterControlsProps {
   onVerifiedOnlyChange: (value: boolean) => void;
   onVirtualTourOnlyChange: (value: boolean) => void;
   onUtilitiesIncludedChange: (value: boolean) => void;
+  onSortChange: (value: ListingSortOption) => void;
   onReset: () => void;
 }
 
@@ -262,6 +343,7 @@ function FilterControls({
   verifiedOnly,
   virtualTourOnly,
   utilitiesIncluded,
+  sort,
   compact = false,
   onZoneChange,
   onMinPriceChange,
@@ -270,6 +352,7 @@ function FilterControls({
   onVerifiedOnlyChange,
   onVirtualTourOnlyChange,
   onUtilitiesIncludedChange,
+  onSortChange,
   onReset,
 }: FilterControlsProps) {
   return (
@@ -277,7 +360,7 @@ function FilterControls({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">Filtri</h2>
-          <p className="mt-1 text-sm text-gray-500">Restringi la ricerca in base alle tue esigenze.</p>
+          <p className="mt-1 text-sm text-gray-500">Restringi la ricerca o riordina i risultati in tempo reale.</p>
         </div>
         {!compact && (
           <button
@@ -338,6 +421,21 @@ function FilterControls({
             {typeOptions.map((option) => (
               <option key={option} value={option}>
                 {option === "tutti" ? "Tutti i tipi" : option}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="text-sm font-medium text-gray-700">Ordina per</span>
+          <select
+            value={sort}
+            onChange={(event) => onSortChange(event.target.value as ListingSortOption)}
+            className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
+          >
+            {sortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>
