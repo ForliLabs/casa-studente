@@ -4,8 +4,10 @@ import { notFound } from "next/navigation";
 import { ContactForm } from "@/components/contact-form";
 import { ImageGallery } from "@/components/image-upload";
 import { SingleListingMap } from "@/components/listing-map";
+import { TourRequestPanel } from "@/components/tour-request-panel";
+import { getCurrentUser, userStore } from "@/lib/auth";
 import { getListingById } from "@/lib/data";
-import { userStore } from "@/lib/auth";
+import { getLandlordAvailability, getVirtualTour360 } from "@/lib/actions/tours";
 import { reviewStore, calculateTrustScore } from "@/lib/stores";
 
 interface ListingPageProps {
@@ -34,9 +36,16 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
     notFound();
   }
 
-  const listingReviews = await reviewStore.filter((r) => r.listingId === id);
-  const landlordReviews = await reviewStore.filter((r) => r.revieweeName === listing.landlord.name);
-  const landlordAccount = (await userStore.filter((user) => user.email === listing.landlord.email))[0] ?? null;
+  const [listingReviews, landlordReviews, landlordAccount, currentUser] = await Promise.all([
+    reviewStore.filter((review) => review.listingId === id),
+    reviewStore.filter((review) => review.revieweeName === listing.landlord.name),
+    userStore.filter((candidate) => candidate.email === listing.landlord.email).then((users) => users[0] ?? null),
+    getCurrentUser(),
+  ]);
+  const [virtualTour360, landlordAvailability] = await Promise.all([
+    getVirtualTour360(listing.id),
+    landlordAccount ? getLandlordAvailability(landlordAccount.id) : Promise.resolve([]),
+  ]);
   const trustScore = calculateTrustScore(landlordReviews, listing.verified, 180);
 
   return (
@@ -134,7 +143,11 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
 
             {/* Image Gallery (Feature 3) */}
             <section className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-              <ImageGallery images={listing.photos} virtualTour={listing.virtualTour} />
+              <ImageGallery
+                images={listing.photos}
+                virtualTour={listing.virtualTour}
+                virtualTourData={virtualTour360}
+              />
             </section>
 
             {/* Interactive Map (Feature 5) */}
@@ -225,6 +238,17 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
               landlordEmail={listing.landlord.email}
               landlordId={landlordAccount?.id}
             />
+
+            {landlordAccount && (
+              <TourRequestPanel
+                listingId={listing.id}
+                listingTitle={listing.title}
+                landlordId={landlordAccount.id}
+                landlordName={listing.landlord.name}
+                availability={landlordAvailability}
+                isLoggedIn={!!currentUser}
+              />
+            )}
 
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900">Azioni rapide</h3>
