@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { canSendLeaseForSignature, canSignLease, getLeaseProgress } from "@/lib/lease-workflow";
 import { paymentStore, leaseStore } from "@/lib/stores";
+import { sendLeaseForSignatureAction, signLeaseAction } from "@/lib/actions/payments";
 
 export const metadata: Metadata = {
   title: "Pagamenti",
@@ -46,8 +48,10 @@ export default async function DashboardPaymentsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login");
 
-  const allPayments = await paymentStore.findAll();
-  const allLeases = await leaseStore.findAll();
+  const [allPayments, allLeases] = await Promise.all([
+    paymentStore.findAll(),
+    leaseStore.findAll(),
+  ]);
 
   const payments = allPayments.filter((payment) => {
     if (user.role === "admin") return true;
@@ -65,6 +69,8 @@ export default async function DashboardPaymentsPage() {
   const totalAmount = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const totalFees = completedPayments.reduce((sum, payment) => sum + payment.platformFee, 0);
   const summaryLabel = user.role === "landlord" ? "Totale ricevuto" : "Totale pagato";
+  const activeLeases = leases.filter((lease) => lease.status === "active").length;
+  const pendingSignatureLeases = leases.filter((lease) => lease.status === "pending_signature").length;
 
   return (
     <div className="space-y-8">
@@ -76,11 +82,11 @@ export default async function DashboardPaymentsPage() {
           Gestione finanziaria
         </h1>
         <p className="mt-3 max-w-3xl text-sm text-gray-600">
-          Visualizza solo movimenti e contratti collegati al tuo account. I nuovi pagamenti creati manualmente restano in attesa finché non vengono confermati.
+          Visualizza solo movimenti e contratti collegati al tuo account. I nuovi pagamenti creati manualmente restano in attesa finché non vengono confermati e i contratti seguono un flusso chiaro di firma digitale.
         </p>
       </section>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-medium text-gray-500">{summaryLabel}</p>
           <p className="mt-2 text-3xl font-bold text-gray-900">€{totalAmount.toLocaleString()}</p>
@@ -92,9 +98,11 @@ export default async function DashboardPaymentsPage() {
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-medium text-gray-500">Contratti attivi</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">
-            {leases.filter((lease) => lease.status === "active").length}
-          </p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">{activeLeases}</p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium text-gray-500">Firme in attesa</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">{pendingSignatureLeases}</p>
         </div>
       </div>
 
@@ -151,46 +159,131 @@ export default async function DashboardPaymentsPage() {
         <div className="border-b border-gray-200 px-6 py-4">
           <h2 className="text-lg font-semibold text-gray-900">Contratti digitali</h2>
           <p className="mt-1 text-sm text-gray-500">
-            Contratti tipo <em>contratto transitorio</em> con regime fiscale <em>cedolare secca</em>.
+            Contratti tipo <em>contratto transitorio</em> con regime fiscale <em>cedolare secca</em> e firma digitale guidata.
           </p>
         </div>
         <div className="divide-y divide-gray-200">
-          {leases.map((lease) => (
-            <div key={lease.id} className="p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="font-semibold text-gray-900">{lease.listingTitle}</h3>
-                  <p className="mt-1 text-sm text-gray-500">{lease.address}</p>
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
-                    <span>Inquilino: {lease.tenantName}</span>
-                    <span>·</span>
-                    <span>Proprietario: {lease.landlordName}</span>
+          {leases.map((lease) => {
+            const progress = getLeaseProgress(lease);
+            const userCanSend = canSendLeaseForSignature(lease, user);
+            const userCanSign = canSignLease(lease, user);
+
+            return (
+              <div key={lease.id} className="p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{lease.listingTitle}</h3>
+                    <p className="mt-1 text-sm text-gray-500">{lease.address}</p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
+                      <span>Inquilino: {lease.tenantName}</span>
+                      <span>·</span>
+                      <span>Proprietario: {lease.landlordName}</span>
+                    </div>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${leaseStatusColors[lease.status]}`}>
+                    {leaseStatusLabels[lease.status]}
+                  </span>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <div className="rounded-xl bg-gray-50 p-3">
+                    <p className="text-xs text-gray-500">Canone</p>
+                    <p className="font-semibold text-gray-900">€{lease.monthlyRent}/mese</p>
+                  </div>
+                  <div className="rounded-xl bg-gray-50 p-3">
+                    <p className="text-xs text-gray-500">Deposito</p>
+                    <p className="font-semibold text-gray-900">€{lease.deposit}</p>
+                  </div>
+                  <div className="rounded-xl bg-gray-50 p-3">
+                    <p className="text-xs text-gray-500">Periodo</p>
+                    <p className="font-semibold text-gray-900">{lease.startDate} → {lease.endDate}</p>
+                  </div>
+                  <div className="rounded-xl bg-gray-50 p-3">
+                    <p className="text-xs text-gray-500">Tipo contratto</p>
+                    <p className="font-semibold text-gray-900 capitalize">{lease.contractType}</p>
                   </div>
                 </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-medium ${leaseStatusColors[lease.status]}`}>
-                  {leaseStatusLabels[lease.status]}
-                </span>
+
+                <div className="mt-5 grid gap-3 md:grid-cols-3">
+                  {progress.map((step) => (
+                    <div
+                      key={step.id}
+                      className={`rounded-2xl border p-4 ${
+                        step.completed
+                          ? "border-emerald-200 bg-emerald-50"
+                          : step.current
+                            ? "border-blue-200 bg-blue-50"
+                            : "border-gray-200 bg-gray-50"
+                      }`}
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{step.label}</p>
+                      <p className="mt-2 text-sm text-gray-700">{step.description}</p>
+                      {step.timestamp && (
+                        <p className="mt-2 text-xs text-gray-500">
+                          {new Date(step.timestamp).toLocaleDateString("it-IT")}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {lease.signatureAuditTrail && lease.signatureAuditTrail.length > 0 && (
+                  <div className="mt-5 rounded-2xl bg-slate-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Tracciabilità firma</p>
+                    <ul className="mt-3 space-y-2 text-sm text-slate-700">
+                      {lease.signatureAuditTrail.map((entry) => (
+                        <li key={entry}>• {entry}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {(userCanSend || userCanSign || lease.status === "pending_signature") && (
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                    {userCanSend && (
+                      <form
+                        action={async (formData) => {
+                          "use server";
+                          await sendLeaseForSignatureAction(formData);
+                        }}
+                      >
+                        <input type="hidden" name="leaseId" value={lease.id} />
+                        <button
+                          type="submit"
+                          className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+                        >
+                          Invia per firma
+                        </button>
+                      </form>
+                    )}
+                    {userCanSign && (
+                      <form
+                        action={async (formData) => {
+                          "use server";
+                          await signLeaseAction(formData);
+                        }}
+                      >
+                        <input type="hidden" name="leaseId" value={lease.id} />
+                        <button
+                          type="submit"
+                          className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                        >
+                          Firma digitalmente
+                        </button>
+                      </form>
+                    )}
+                    {!userCanSign && lease.status === "pending_signature" && (
+                      <p className="text-sm text-gray-500">
+                        {user.role === "landlord"
+                          ? "Il contratto è stato inviato: attendi la firma dello studente."
+                          : "Il contratto è pronto: attendi l'invito o completa la firma quando disponibile."}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <div className="rounded-xl bg-gray-50 p-3">
-                  <p className="text-xs text-gray-500">Canone</p>
-                  <p className="font-semibold text-gray-900">€{lease.monthlyRent}/mese</p>
-                </div>
-                <div className="rounded-xl bg-gray-50 p-3">
-                  <p className="text-xs text-gray-500">Deposito</p>
-                  <p className="font-semibold text-gray-900">€{lease.deposit}</p>
-                </div>
-                <div className="rounded-xl bg-gray-50 p-3">
-                  <p className="text-xs text-gray-500">Periodo</p>
-                  <p className="font-semibold text-gray-900">{lease.startDate} → {lease.endDate}</p>
-                </div>
-                <div className="rounded-xl bg-gray-50 p-3">
-                  <p className="text-xs text-gray-500">Tipo contratto</p>
-                  <p className="font-semibold text-gray-900 capitalize">{lease.contractType}</p>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {leases.length === 0 && (
             <div className="p-12 text-center text-sm text-gray-500">
               Nessun contratto collegato al tuo account.

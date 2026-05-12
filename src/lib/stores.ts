@@ -308,6 +308,11 @@ export interface LeaseContract {
   taxRegime: "cedolare_secca" | "ordinario";
   status: "draft" | "pending_signature" | "active" | "expired";
   createdAt: string;
+  lastUpdatedAt?: string;
+  sentForSignatureAt?: string;
+  landlordSignedAt?: string;
+  tenantSignedAt?: string;
+  signatureAuditTrail?: string[];
 }
 
 export const paymentStore = new InMemoryStore<Payment>();
@@ -365,6 +370,15 @@ leaseStore.seed([
     taxRegime: "cedolare_secca",
     status: "active",
     createdAt: new Date(Date.now() - 35 * 86400000).toISOString(),
+    sentForSignatureAt: new Date(Date.now() - 37 * 86400000).toISOString(),
+    landlordSignedAt: new Date(Date.now() - 37 * 86400000).toISOString(),
+    tenantSignedAt: new Date(Date.now() - 36 * 86400000).toISOString(),
+    lastUpdatedAt: new Date(Date.now() - 36 * 86400000).toISOString(),
+    signatureAuditTrail: [
+      "Bozza creata dal proprietario",
+      "Contratto inviato per la firma digitale",
+      "Inquilina ha firmato digitalmente il contratto",
+    ],
   },
 ]);
 
