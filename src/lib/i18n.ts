@@ -89,6 +89,43 @@ type TranslationKeys = {
   "dashboard.forYou": string;
   "dashboard.accessibility": string;
   "dashboard.legalCompliance": string;
+  "dashboard.tenantScore": string;
+  "dashboard.forecasting": string;
+  "dashboard.landlordApi": string;
+  "dashboard.universitySso": string;
+  "dashboard.notificationHub": string;
+  "dashboard.compliance": string;
+  // Onboarding
+  "onboarding.title": string;
+  "onboarding.welcome": string;
+  "onboarding.step1": string;
+  "onboarding.step2": string;
+  "onboarding.step3": string;
+  "onboarding.complete": string;
+  // Neighborhoods
+  "neighborhoods.title": string;
+  "neighborhoods.quiz": string;
+  "neighborhoods.explore": string;
+  "neighborhoods.safety": string;
+  "neighborhoods.transport": string;
+  "neighborhoods.nightlife": string;
+  // Community
+  "community.title": string;
+  "community.feed": string;
+  "community.stories": string;
+  "community.articles": string;
+  "community.share": string;
+  // Calendar
+  "calendar.title": string;
+  "calendar.semester": string;
+  "calendar.availability": string;
+  "calendar.sync": string;
+  // Notifications
+  "notifications.title": string;
+  "notifications.markRead": string;
+  "notifications.markAllRead": string;
+  "notifications.preferences": string;
+  "notifications.empty": string;
   // Auth
   "auth.login": string;
   "auth.register": string;
@@ -239,6 +276,38 @@ const translations: Record<Locale, TranslationKeys> = {
     "dashboard.forYou": "Per te",
     "dashboard.accessibility": "Accessibilità",
     "dashboard.legalCompliance": "Conformità legale",
+    "dashboard.tenantScore": "Punteggio inquilino",
+    "dashboard.forecasting": "Previsioni domanda",
+    "dashboard.landlordApi": "API proprietario",
+    "dashboard.universitySso": "SSO universitario",
+    "dashboard.notificationHub": "Centro notifiche",
+    "dashboard.compliance": "Documenti",
+    "onboarding.title": "Benvenuto su CasaStudente",
+    "onboarding.welcome": "Completiamo il tuo profilo",
+    "onboarding.step1": "Dati personali",
+    "onboarding.step2": "Preferenze alloggio",
+    "onboarding.step3": "Verifica università",
+    "onboarding.complete": "Profilo completato!",
+    "neighborhoods.title": "Scopri i quartieri di Forlì",
+    "neighborhoods.quiz": "Quiz quartiere ideale",
+    "neighborhoods.explore": "Esplora la zona",
+    "neighborhoods.safety": "Sicurezza",
+    "neighborhoods.transport": "Trasporti",
+    "neighborhoods.nightlife": "Vita notturna",
+    "community.title": "Comunità CasaStudente",
+    "community.feed": "Feed",
+    "community.stories": "Storie",
+    "community.articles": "Articoli",
+    "community.share": "Condividi",
+    "calendar.title": "Calendario semestrale",
+    "calendar.semester": "Semestre",
+    "calendar.availability": "Disponibilità",
+    "calendar.sync": "Sincronizza",
+    "notifications.title": "Notifiche",
+    "notifications.markRead": "Segna come letto",
+    "notifications.markAllRead": "Segna tutto come letto",
+    "notifications.preferences": "Preferenze notifiche",
+    "notifications.empty": "Nessuna notifica",
     "auth.login": "Accedi a CasaStudente",
     "auth.register": "Crea il tuo account",
     "auth.email": "Email",
@@ -380,6 +449,38 @@ const translations: Record<Locale, TranslationKeys> = {
     "dashboard.forYou": "For you",
     "dashboard.accessibility": "Accessibility",
     "dashboard.legalCompliance": "Legal compliance",
+    "dashboard.tenantScore": "Tenant score",
+    "dashboard.forecasting": "Demand forecasting",
+    "dashboard.landlordApi": "Landlord API",
+    "dashboard.universitySso": "University SSO",
+    "dashboard.notificationHub": "Notification hub",
+    "dashboard.compliance": "Documents",
+    "onboarding.title": "Welcome to CasaStudente",
+    "onboarding.welcome": "Let's complete your profile",
+    "onboarding.step1": "Personal details",
+    "onboarding.step2": "Housing preferences",
+    "onboarding.step3": "University verification",
+    "onboarding.complete": "Profile completed!",
+    "neighborhoods.title": "Discover Forlì's neighborhoods",
+    "neighborhoods.quiz": "Ideal neighborhood quiz",
+    "neighborhoods.explore": "Explore the area",
+    "neighborhoods.safety": "Safety",
+    "neighborhoods.transport": "Transport",
+    "neighborhoods.nightlife": "Nightlife",
+    "community.title": "CasaStudente Community",
+    "community.feed": "Feed",
+    "community.stories": "Stories",
+    "community.articles": "Articles",
+    "community.share": "Share",
+    "calendar.title": "Semester calendar",
+    "calendar.semester": "Semester",
+    "calendar.availability": "Availability",
+    "calendar.sync": "Sync",
+    "notifications.title": "Notifications",
+    "notifications.markRead": "Mark as read",
+    "notifications.markAllRead": "Mark all as read",
+    "notifications.preferences": "Notification preferences",
+    "notifications.empty": "No notifications",
     "auth.login": "Log in to CasaStudente",
     "auth.register": "Create your account",
     "auth.email": "Email",
@@ -521,6 +622,38 @@ const translations: Record<Locale, TranslationKeys> = {
     "dashboard.forYou": "Para ti",
     "dashboard.accessibility": "Accesibilidad",
     "dashboard.legalCompliance": "Cumplimiento legal",
+    "dashboard.tenantScore": "Puntuación inquilino",
+    "dashboard.forecasting": "Previsión demanda",
+    "dashboard.landlordApi": "API propietario",
+    "dashboard.universitySso": "SSO universitario",
+    "dashboard.notificationHub": "Centro de notificaciones",
+    "dashboard.compliance": "Documentos",
+    "onboarding.title": "Bienvenido a CasaStudente",
+    "onboarding.welcome": "Completemos tu perfil",
+    "onboarding.step1": "Datos personales",
+    "onboarding.step2": "Preferencias de alojamiento",
+    "onboarding.step3": "Verificación universitaria",
+    "onboarding.complete": "¡Perfil completado!",
+    "neighborhoods.title": "Descubre los barrios de Forlì",
+    "neighborhoods.quiz": "Quiz del barrio ideal",
+    "neighborhoods.explore": "Explora la zona",
+    "neighborhoods.safety": "Seguridad",
+    "neighborhoods.transport": "Transporte",
+    "neighborhoods.nightlife": "Vida nocturna",
+    "community.title": "Comunidad CasaStudente",
+    "community.feed": "Feed",
+    "community.stories": "Historias",
+    "community.articles": "Artículos",
+    "community.share": "Compartir",
+    "calendar.title": "Calendario semestral",
+    "calendar.semester": "Semestre",
+    "calendar.availability": "Disponibilidad",
+    "calendar.sync": "Sincronizar",
+    "notifications.title": "Notificaciones",
+    "notifications.markRead": "Marcar como leído",
+    "notifications.markAllRead": "Marcar todo como leído",
+    "notifications.preferences": "Preferencias de notificaciones",
+    "notifications.empty": "Sin notificaciones",
     "auth.login": "Entrar en CasaStudente",
     "auth.register": "Crea tu cuenta",
     "auth.email": "Email",
@@ -662,6 +795,38 @@ const translations: Record<Locale, TranslationKeys> = {
     "dashboard.forYou": "Pour vous",
     "dashboard.accessibility": "Accessibilité",
     "dashboard.legalCompliance": "Conformité juridique",
+    "dashboard.tenantScore": "Score locataire",
+    "dashboard.forecasting": "Prévision de demande",
+    "dashboard.landlordApi": "API propriétaire",
+    "dashboard.universitySso": "SSO universitaire",
+    "dashboard.notificationHub": "Centre de notifications",
+    "dashboard.compliance": "Documents",
+    "onboarding.title": "Bienvenue sur CasaStudente",
+    "onboarding.welcome": "Complétons votre profil",
+    "onboarding.step1": "Données personnelles",
+    "onboarding.step2": "Préférences de logement",
+    "onboarding.step3": "Vérification universitaire",
+    "onboarding.complete": "Profil complété !",
+    "neighborhoods.title": "Découvrez les quartiers de Forlì",
+    "neighborhoods.quiz": "Quiz du quartier idéal",
+    "neighborhoods.explore": "Explorer le quartier",
+    "neighborhoods.safety": "Sécurité",
+    "neighborhoods.transport": "Transports",
+    "neighborhoods.nightlife": "Vie nocturne",
+    "community.title": "Communauté CasaStudente",
+    "community.feed": "Fil",
+    "community.stories": "Histoires",
+    "community.articles": "Articles",
+    "community.share": "Partager",
+    "calendar.title": "Calendrier semestriel",
+    "calendar.semester": "Semestre",
+    "calendar.availability": "Disponibilité",
+    "calendar.sync": "Synchroniser",
+    "notifications.title": "Notifications",
+    "notifications.markRead": "Marquer comme lu",
+    "notifications.markAllRead": "Tout marquer comme lu",
+    "notifications.preferences": "Préférences de notifications",
+    "notifications.empty": "Aucune notification",
     "auth.login": "Se connecter à CasaStudente",
     "auth.register": "Créer votre compte",
     "auth.email": "Email",
