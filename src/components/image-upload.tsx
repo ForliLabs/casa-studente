@@ -145,9 +145,18 @@ interface ImageGalleryProps {
   images: string[];
   virtualTour?: boolean;
   virtualTourUrl?: string;
+  virtualTourData?: {
+    totalViews: number;
+    avgCompletionRate: number;
+    rooms: Array<{
+      id: string;
+      name: string;
+      annotations: string[];
+    }>;
+  } | null;
 }
 
-export function ImageGallery({ images, virtualTour, virtualTourUrl }: ImageGalleryProps) {
+export function ImageGallery({ images, virtualTour, virtualTourUrl, virtualTourData }: ImageGalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -308,6 +317,41 @@ export function ImageGallery({ images, virtualTour, virtualTourUrl }: ImageGalle
         </div>
       )}
 
+      {virtualTourData && (
+        <div className="mt-6 rounded-3xl border border-indigo-200 bg-indigo-50 p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-indigo-950">Percorso tour virtuale 360°</h3>
+              <p className="mt-1 text-sm text-indigo-800">
+                Anteprima strutturata del tour: sai già quali ambienti vedrai e cosa controllare durante la visita guidata.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-center text-sm text-indigo-900">
+              <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.18em] text-indigo-500">Stanze</p>
+                <p className="mt-1 text-xl font-bold">{virtualTourData.rooms.length}</p>
+              </div>
+              <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.18em] text-indigo-500">Completamento</p>
+                <p className="mt-1 text-xl font-bold">{virtualTourData.avgCompletionRate}%</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            {virtualTourData.rooms.map((room, index) => (
+              <div key={room.id} className="rounded-2xl bg-white p-4 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-500">Step {index + 1}</p>
+                <p className="mt-2 text-base font-semibold text-gray-900">{room.name}</p>
+                <p className="mt-2 text-sm text-gray-600">{room.annotations.slice(0, 2).join(" · ")}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-xs text-indigo-700">
+            {virtualTourData.totalViews} studenti hanno già visualizzato questo tour 360°.
+          </p>
+        </div>
+      )}
+
       {virtualTour && virtualTourUrl && (
         <div className="mt-6">
           <h3 className="text-lg font-semibold text-gray-900">Tour virtuale 360°</h3>
@@ -322,7 +366,7 @@ export function ImageGallery({ images, virtualTour, virtualTourUrl }: ImageGalle
         </div>
       )}
 
-      {virtualTour && !virtualTourUrl && (
+      {virtualTour && !virtualTourUrl && !virtualTourData && (
         <div className="mt-6 rounded-2xl border border-dashed border-indigo-300 bg-indigo-50 p-6 text-center">
           <p className="text-sm font-medium text-indigo-700">Tour virtuale disponibile</p>
           <p className="mt-1 text-xs text-indigo-500">
