@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Inbox, SearchX } from "lucide-react";
+import { Inbox, SearchX, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function PageSkeleton({ variant = "default" }: { variant?: "default" | "auth" | "dashboard" | "listings" }) {
@@ -145,6 +145,65 @@ export function EmptyState({
             {actionLabel}
           </button>
         )
+      )}
+    </div>
+  );
+}
+
+interface SearchEmptyStateProps {
+  query?: string;
+  suggestions?: string[];
+  onClearFilters?: () => void;
+  onSuggestionClick?: (suggestion: string) => void;
+  className?: string;
+}
+
+export function SearchEmptyState({
+  query,
+  suggestions = [],
+  onClearFilters,
+  onSuggestionClick,
+  className,
+}: SearchEmptyStateProps) {
+  return (
+    <div className={cn("rounded-3xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm", className)}>
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+        <SearchX className="h-6 w-6" />
+      </div>
+      <h3 className="mt-4 text-lg font-semibold text-gray-900">
+        {query ? `Nessun risultato per "${query}"` : "Nessun risultato trovato"}
+      </h3>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
+        Prova a modificare i termini di ricerca, rimuovere qualche filtro o usare parole chiave diverse.
+      </p>
+      {suggestions.length > 0 && (
+        <div className="mt-6">
+          <div className="flex items-center justify-center gap-2 text-xs font-medium text-gray-400">
+            <Lightbulb className="h-3.5 w-3.5" />
+            <span>Prova con:</span>
+          </div>
+          <div className="mt-2 flex flex-wrap justify-center gap-2">
+            {suggestions.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => onSuggestionClick?.(suggestion)}
+                className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 transition hover:bg-blue-100"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {onClearFilters && (
+        <button
+          type="button"
+          onClick={onClearFilters}
+          className="mt-5 inline-flex rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+        >
+          Cancella i filtri
+        </button>
       )}
     </div>
   );
