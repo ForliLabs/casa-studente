@@ -281,6 +281,42 @@ export async function contactLandlordAction(_prevState: unknown, formData: FormD
   };
 }
 
+const generalContactSchema = z.object({
+  name: z.string().min(2, "Il nome deve avere almeno 2 caratteri").max(100),
+  email: z.string().email("Email non valida").max(255),
+  subject: z.string().min(3, "L'oggetto deve avere almeno 3 caratteri").max(200),
+  message: z.string().min(10, "Il messaggio deve avere almeno 10 caratteri").max(5000),
+});
+
+export async function generalContactAction(_prevState: unknown, formData: FormData) {
+  const raw = {
+    name: formData.get("name"),
+    email: formData.get("email"),
+    subject: formData.get("subject"),
+    message: formData.get("message"),
+  };
+
+  const parsed = generalContactSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0].message };
+  }
+
+  // In production this would send an email via Resend or create a support ticket.
+  // For now we log and return success as a placeholder.
+  console.info("[Contact Form]", {
+    name: parsed.data.name,
+    email: parsed.data.email,
+    subject: parsed.data.subject,
+    messageLength: parsed.data.message.length,
+    timestamp: new Date().toISOString(),
+  });
+
+  return {
+    success: true,
+    message: "Messaggio ricevuto! Ti risponderemo il prima possibile all'indirizzo email indicato.",
+  };
+}
+
 export async function markConversationReadAction(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GeneralContactForm } from "@/components/general-contact-form";
 
 export default function ContactPage() {
   return (
@@ -27,6 +28,16 @@ export default function ContactPage() {
                 Apri la dashboard
               </Link>
             </div>
+          </div>
+        </section>
+
+        <section className="mt-8 rounded-3xl border border-gray-200 bg-white p-8 shadow-sm sm:p-10">
+          <h2 className="text-xl font-semibold text-gray-900">Scrivici un messaggio</h2>
+          <p className="mt-2 text-sm text-gray-500">
+            Compila il modulo e il nostro team ti risponderà il prima possibile.
+          </p>
+          <div className="mt-6">
+            <GeneralContactForm />
           </div>
         </section>
       </div>
