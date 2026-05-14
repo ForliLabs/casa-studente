@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { generateCorrelationId } from "@/lib/services/monitoring";
 
 /**
- * Edge Middleware — security headers + auth session validation.
+ * Edge Middleware — security headers, correlation IDs, and auth session validation.
  * Runs on every request before reaching the page/API route.
  */
 export function middleware(request: NextRequest) {
   const response = NextResponse.next();
+
+  // ============ Request Correlation ============
+  const correlationId = request.headers.get("x-correlation-id") || generateCorrelationId();
+  response.headers.set("X-Correlation-Id", correlationId);
+  response.headers.set("X-Request-Start", Date.now().toString());
 
   // ============ Security Headers ============
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -17,6 +23,7 @@ export function middleware(request: NextRequest) {
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=(self), interest-cohort=()"
   );
+  response.headers.set("X-Permitted-Cross-Domain-Policies", "none");
 
   // HSTS — only in production
   if (process.env.NODE_ENV === "production") {
@@ -27,9 +34,10 @@ export function middleware(request: NextRequest) {
   }
 
   // Content Security Policy
+  const nonce = crypto.randomUUID();
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https://*.stripe.com https://*.vercel-storage.com",
@@ -37,6 +45,9 @@ export function middleware(request: NextRequest) {
     "frame-src https://js.stripe.com https://hooks.stripe.com",
     "object-src 'none'",
     "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "upgrade-insecure-requests",
   ].join("; ");
 
   response.headers.set("Content-Security-Policy", csp);
@@ -50,7 +61,9 @@ export function middleware(request: NextRequest) {
   if (isProtected) {
     const sessionId = request.cookies.get("session_id")?.value;
     if (!sessionId) {
-      return NextResponse.redirect(new URL("/auth/login", request.url));
+      const loginUrl = new URL("/auth/login", request.url);
+      loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
     }
   }
 
