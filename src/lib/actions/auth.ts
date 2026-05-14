@@ -2,7 +2,6 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import {
   authenticateUser,
   createSession,
@@ -13,25 +12,7 @@ import {
   userStore,
 } from "@/lib/auth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
-
-// ============ Zod Schemas ============
-
-const loginSchema = z.object({
-  email: z.string().email("Email non valida").max(255),
-  password: z.string().min(1, "Password obbligatoria").max(128),
-});
-
-const registerSchema = z.object({
-  email: z.string().email("Email non valida").max(255),
-  name: z.string().min(2, "Nome troppo corto").max(100).trim(),
-  password: z.string().min(8, "La password deve avere almeno 8 caratteri").max(128),
-  role: z.enum(["student", "landlord"]).default("student"),
-});
-
-const verifySchema = z.object({
-  universityId: z.string().min(1, "Inserisci la matricola universitaria").max(20),
-  documentName: z.string().max(255).optional(),
-});
+import { loginSchema, registerSchema, verifyUniversitySchema } from "@/lib/validation";
 
 // ============ Actions ============
 
@@ -139,7 +120,7 @@ export async function verifyUniversityAction(_prevState: unknown, formData: Form
         : ((formData.get("documentName") as string) || ""),
   };
 
-  const result = verifySchema.safeParse(raw);
+  const result = verifyUniversitySchema.safeParse(raw);
   if (!result.success) {
     return { error: result.error.errors[0].message };
   }
