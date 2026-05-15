@@ -50,4 +50,52 @@ describe("Rate Limiter", () => {
     expect(RATE_LIMITS.actions.maxRequests).toBe(30);
     expect(RATE_LIMITS.aiGenerate.maxRequests).toBe(50);
   });
+
+  it("continues blocking after limit is exceeded", () => {
+    const key = `test-${Date.now()}-continue-block`;
+    const singleReq: RateLimitConfig = { maxRequests: 1, windowMs: 60000 };
+
+    checkRateLimit(key, singleReq);
+    // All subsequent requests should be blocked
+    for (let i = 0; i < 5; i++) {
+      const result = checkRateLimit(key, singleReq);
+      expect(result.allowed).toBe(false);
+      expect(result.remaining).toBe(0);
+    }
+  });
+
+  it("allows single request with maxRequests=1", () => {
+    const key = `test-${Date.now()}-single`;
+    const singleReq: RateLimitConfig = { maxRequests: 1, windowMs: 60000 };
+
+    const r1 = checkRateLimit(key, singleReq);
+    expect(r1.allowed).toBe(true);
+    expect(r1.remaining).toBe(0);
+
+    const r2 = checkRateLimit(key, singleReq);
+    expect(r2.allowed).toBe(false);
+  });
+
+  it("handles high-volume rate limiting", () => {
+    const key = `test-${Date.now()}-highvol`;
+    const highVolConfig: RateLimitConfig = { maxRequests: 100, windowMs: 1000 };
+
+    for (let i = 0; i < 100; i++) {
+      const result = checkRateLimit(key, highVolConfig);
+      expect(result.allowed).toBe(true);
+    }
+
+    const overflow = checkRateLimit(key, highVolConfig);
+    expect(overflow.allowed).toBe(false);
+  });
+
+  it("tracks remaining count correctly", () => {
+    const key = `test-${Date.now()}-remaining`;
+    const config: RateLimitConfig = { maxRequests: 5, windowMs: 60000 };
+
+    for (let i = 0; i < 5; i++) {
+      const result = checkRateLimit(key, config);
+      expect(result.remaining).toBe(5 - 1 - i);
+    }
+  });
 });
