@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { getLegalComplianceDashboard, calculateTaxComparison } from "@/lib/actions/legal-compliance";
-import { getCurrentUser } from "@/lib/auth";
-import { Scale, FileText, AlertTriangle, CheckCircle, Shield, Calculator, BookOpen, XCircle, Clock } from "lucide-react";
+import { FileText, AlertTriangle, CheckCircle, Shield, Calculator, BookOpen, XCircle, Clock } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Conformità Legale — Wizard Contratti",
@@ -9,7 +8,6 @@ export const metadata: Metadata = {
 };
 
 export default async function LegalCompliancePage() {
-  const user = await getCurrentUser();
   const dashboard = await getLegalComplianceDashboard();
   const taxExample = await calculateTaxComparison(450, "transitorio");
 

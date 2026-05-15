@@ -1,5 +1,5 @@
 import { getAdminStats, getConversionFunnel } from "@/lib/actions/admin";
-import { AlertTriangle, CheckCircle, FileText, Home, TrendingUp, Users } from "lucide-react";
+import { AlertTriangle, FileText, Home, TrendingUp, Users } from "lucide-react";
 
 export default async function AdminDashboard() {
   const stats = await getAdminStats();
@@ -36,7 +36,7 @@ export default async function AdminDashboard() {
         <div className="rounded-xl border border-gray-200 p-6">
           <h2 className="mb-4 text-lg font-semibold text-gray-900">Funnel Conversione</h2>
           <div className="space-y-3">
-            {funnel.map((step, i) => {
+            {funnel.map((step) => {
               const maxCount = funnel[0]?.count || 1;
               const pct = Math.round((step.count / maxCount) * 100);
               return (

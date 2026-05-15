@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/feedback";
 import { NaturalLanguageSearch } from "@/components/nl-search";
@@ -42,6 +42,8 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const [viewMode, setViewMode] = useState<"cozy" | "compact">("cozy");
   const currentParams = useMemo(() => new URLSearchParams(searchParams.toString()), [searchParams]);
   const { sort, ...filters } = useMemo(
     () => parseListingFiltersFromSearchParams(new URLSearchParams(searchParams.toString())),
@@ -58,9 +60,18 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
   );
   const hasActiveFilters = hasActiveListingFilters(filters);
 
+  function updateViewMode(nextMode: "cozy" | "compact") {
+    setViewMode(nextMode);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("casastudente:listings-view-mode", nextMode);
+    }
+  }
+
   function replaceParams(next: URLSearchParams) {
     const query = next.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname);
+    startTransition(() => {
+      router.replace(query ? `${pathname}?${query}` : pathname);
+    });
   }
 
   function updateTextParam(key: string, value: string) {
@@ -162,8 +173,21 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[280px_minmax(0,1fr)]">
-      <aside className="hidden h-fit rounded-3xl border border-gray-200 bg-white p-6 shadow-sm lg:block">
+      <aside className="hidden h-fit rounded-3xl border border-gray-200 bg-white p-6 shadow-sm lg:sticky lg:top-24 lg:block">
         <FilterControls
+          key={[
+            "desktop",
+            filters.zone ?? "",
+            filters.minPrice ?? "",
+            filters.maxPrice ?? "",
+            filters.type ?? "tutti",
+            filters.verifiedOnly ? 1 : 0,
+            filters.virtualTourOnly ? 1 : 0,
+            filters.utilitiesIncluded ? 1 : 0,
+            filters.furnishedOnly ? 1 : 0,
+            filters.securePaymentsOnly ? 1 : 0,
+            sort,
+          ].join(":")}
           zone={filters.zone ?? ""}
           minPrice={filters.minPrice ? String(filters.minPrice) : ""}
           maxPrice={filters.maxPrice ? String(filters.maxPrice) : ""}
@@ -246,6 +270,19 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
 
         <div className="mt-6 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm lg:hidden">
           <FilterControls
+            key={[
+              "mobile",
+              filters.zone ?? "",
+              filters.minPrice ?? "",
+              filters.maxPrice ?? "",
+              filters.type ?? "tutti",
+              filters.verifiedOnly ? 1 : 0,
+              filters.virtualTourOnly ? 1 : 0,
+              filters.utilitiesIncluded ? 1 : 0,
+              filters.furnishedOnly ? 1 : 0,
+              filters.securePaymentsOnly ? 1 : 0,
+              sort,
+            ].join(":")}
             zone={filters.zone ?? ""}
             minPrice={filters.minPrice ? String(filters.minPrice) : ""}
             maxPrice={filters.maxPrice ? String(filters.maxPrice) : ""}
@@ -309,6 +346,12 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
           </section>
         )}
 
+        {isPending && (
+          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 shadow-sm">
+            Aggiornamento risultati in corso…
+          </div>
+        )}
+
         {sort === "best-match" && hasActiveFilters && (
           <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 shadow-sm">
             I risultati sono ordinati per affinità AI in base ai tuoi filtri attivi.
@@ -322,15 +365,35 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
               {filteredListings.length} risultati su {listings.length} annunci per studenti a Forlì.
             </p>
           </div>
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-            >
-              Resetta filtri
-            </button>
-          )}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex rounded-xl bg-gray-100 p-1">
+              {([
+                { value: "cozy", label: "Ampia" },
+                { value: "compact", label: "Compatta" },
+              ] as const).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => updateViewMode(option.value)}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-xs font-semibold transition",
+                    viewMode === option.value ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              >
+                Resetta filtri
+              </button>
+            )}
+          </div>
         </div>
 
         {chips.length > 0 && (
@@ -368,13 +431,26 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
             </div>
           </div>
         ) : (
-          <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div
+            className={cn(
+              "mt-6 grid gap-6",
+              viewMode === "cozy" ? "md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1 xl:grid-cols-2"
+            )}
+          >
             {filteredListings.map((listing) => (
               <article
                 key={listing.id}
-                className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                className={cn(
+                  "overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm transition motion-reduce:transform-none",
+                  viewMode === "cozy" ? "hover:-translate-y-1 hover:shadow-lg" : "hover:shadow-md"
+                )}
               >
-                <div className="flex h-48 items-end bg-gradient-to-br from-blue-500 via-sky-500 to-indigo-600 p-5 text-white">
+                <div
+                  className={cn(
+                    "flex items-end bg-gradient-to-br from-blue-500 via-sky-500 to-indigo-600 p-5 text-white",
+                    viewMode === "cozy" ? "h-48" : "h-36"
+                  )}
+                >
                   <div className="w-full">
                     <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-blue-100">
                       <span>{listing.zone}</span>
@@ -407,7 +483,7 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
                   <p className="mt-1 text-sm text-gray-500">{listing.neighborhood}</p>
 
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {listing.features.slice(0, 3).map((feature) => (
+                    {listing.features.slice(0, viewMode === "cozy" ? 3 : 2).map((feature) => (
                       <span
                         key={feature}
                         className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700"
@@ -498,6 +574,31 @@ function FilterControls({
   onSortChange,
   onReset,
 }: FilterControlsProps) {
+  const [draftZone, setDraftZone] = useState(zone);
+  const [draftMinPrice, setDraftMinPrice] = useState(minPrice);
+  const [draftMaxPrice, setDraftMaxPrice] = useState(maxPrice);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (draftZone !== zone) onZoneChange(draftZone);
+    }, 250);
+    return () => window.clearTimeout(timeoutId);
+  }, [draftZone, onZoneChange, zone]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (draftMinPrice !== minPrice) onMinPriceChange(draftMinPrice);
+    }, 250);
+    return () => window.clearTimeout(timeoutId);
+  }, [draftMinPrice, minPrice, onMinPriceChange]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (draftMaxPrice !== maxPrice) onMaxPriceChange(draftMaxPrice);
+    }, 250);
+    return () => window.clearTimeout(timeoutId);
+  }, [draftMaxPrice, maxPrice, onMaxPriceChange]);
+
   return (
     <>
       <div className="flex items-start justify-between gap-3">
@@ -520,8 +621,8 @@ function FilterControls({
         <label className="block">
           <span className="text-sm font-medium text-gray-700">Zona o via</span>
           <input
-            value={zone}
-            onChange={(event) => onZoneChange(event.target.value)}
+            value={draftZone}
+            onChange={(event) => setDraftZone(event.target.value)}
             placeholder="Es. Centro, Viale Roma"
             className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none ring-0 transition focus:border-blue-500"
           />
@@ -531,8 +632,8 @@ function FilterControls({
           <label className="block">
             <span className="text-sm font-medium text-gray-700">Prezzo min</span>
             <input
-              value={minPrice}
-              onChange={(event) => onMinPriceChange(event.target.value)}
+              value={draftMinPrice}
+              onChange={(event) => setDraftMinPrice(event.target.value)}
               type="number"
               min={0}
               inputMode="numeric"
@@ -543,8 +644,8 @@ function FilterControls({
           <label className="block">
             <span className="text-sm font-medium text-gray-700">Prezzo max</span>
             <input
-              value={maxPrice}
-              onChange={(event) => onMaxPriceChange(event.target.value)}
+              value={draftMaxPrice}
+              onChange={(event) => setDraftMaxPrice(event.target.value)}
               type="number"
               min={0}
               inputMode="numeric"

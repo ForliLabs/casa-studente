@@ -1,11 +1,10 @@
-import { getAdminStats, getConversionFunnel } from "@/lib/actions/admin";
+import { getAdminStats } from "@/lib/actions/admin";
 import { userStore } from "@/lib/auth";
 import { listingStore } from "@/lib/data";
 import { paymentStore } from "@/lib/stores";
 
 export default async function AnalyticsPage() {
   const stats = await getAdminStats();
-  const funnel = await getConversionFunnel();
   const users = await userStore.findAll();
   const listings = await listingStore.findAll();
   const payments = await paymentStore.findAll();

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { getMyGroups, getGroupById } from "@/lib/actions/housing-groups";
-import { getCurrentUser } from "@/lib/auth";
-import { Users, Heart, MapPin, DollarSign, Calendar, MessageSquare, FileText, CheckCircle, Clock, UserPlus, Receipt } from "lucide-react";
+import { Users, Heart, MapPin, DollarSign, Calendar, FileText, UserPlus, Receipt } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Gruppi Alloggio — Convivenza",
@@ -9,7 +8,6 @@ export const metadata: Metadata = {
 };
 
 export default async function GroupsPage() {
-  const user = await getCurrentUser();
   const groups = await getMyGroups();
   const groupDetails = groups.length > 0 ? await getGroupById(groups[0].id) : null;
 
