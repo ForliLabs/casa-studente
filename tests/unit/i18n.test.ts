@@ -7,7 +7,6 @@ import {
   formatDate,
   supportedLocales,
   localeLabels,
-  type Locale,
 } from "@/lib/i18n";
 
 describe("i18n - Translation Function", () => {

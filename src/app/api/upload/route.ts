@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { isAllowedUploadCategory, isSafeIdentifier } from "@/lib/security";
 import { uploadFile } from "@/lib/services/storage";
 
 /**
@@ -15,11 +16,19 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
-    const category = (formData.get("category") as string) || "listing_photo";
-    const listingId = formData.get("listingId") as string | null;
+    const category = ((formData.get("category") as string) || "listing_photo").trim();
+    const listingId = (formData.get("listingId") as string | null)?.trim() || null;
 
     if (!file) {
       return NextResponse.json({ error: "File mancante" }, { status: 400 });
+    }
+
+    if (!isAllowedUploadCategory(category)) {
+      return NextResponse.json({ error: "Categoria upload non valida" }, { status: 400 });
+    }
+
+    if (listingId && !isSafeIdentifier(listingId)) {
+      return NextResponse.json({ error: "Identificatore annuncio non valido" }, { status: 400 });
     }
 
     const result = await uploadFile(file, file.name, category, {

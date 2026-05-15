@@ -1,10 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { z } from "zod";
 import {
   withActionMonitoring,
   extractFormFields,
   ACTION_DEFAULTS,
-  type ActionResult,
 } from "@/lib/action-wrapper";
 
 // Mock the monitoring module to avoid side effects

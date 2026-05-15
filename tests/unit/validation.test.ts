@@ -186,6 +186,14 @@ describe("Validation Schemas — Messages", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("rejects suspicious message payloads", () => {
+    const result = sendMessageSchema.safeParse({
+      conversationId: "conv-1",
+      content: '<img src=x onerror="alert(1)"> hello',
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("Validation Schemas — Contact Form", () => {
@@ -205,6 +213,17 @@ describe("Validation Schemas — Contact Form", () => {
       name: "Test",
       email: "not-an-email",
       message: "Valid message with enough content here.",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects suspicious contact messages", () => {
+    const result = contactFormSchema.safeParse({
+      listingId: "l-1",
+      name: "Test",
+      email: "user@example.com",
+      phone: "+39 333 1234567",
+      message: '<script>alert(1)</script> visit request',
     });
     expect(result.success).toBe(false);
   });
@@ -230,6 +249,10 @@ describe("Validation Schemas — AI", () => {
   it("validates NL search with minimum length", () => {
     expect(nlSearchSchema.safeParse({ query: "ab" }).success).toBe(false);
     expect(nlSearchSchema.safeParse({ query: "monolocale centro" }).success).toBe(true);
+  });
+
+  it("rejects suspicious NL search queries", () => {
+    expect(nlSearchSchema.safeParse({ query: '<script>alert(1)</script> centro' }).success).toBe(false);
   });
 });
 

@@ -34,7 +34,6 @@ export function middleware(request: NextRequest) {
   }
 
   // Content Security Policy
-  const nonce = crypto.randomUUID();
   const csp = [
     "default-src 'self'",
     `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com`,

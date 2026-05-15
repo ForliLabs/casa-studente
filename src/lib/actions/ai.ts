@@ -9,6 +9,7 @@ import {
   chatWithAssistant,
   type ChatMessage,
 } from "@/lib/services/ai";
+import { aiGenerateSchema, nlSearchSchema } from "@/lib/validation";
 
 export async function generateListingDescription(formData: FormData) {
   const user = await getCurrentUser();
@@ -17,17 +18,19 @@ export async function generateListingDescription(formData: FormData) {
   const { allowed } = checkRateLimit(`ai:${user.id}`, RATE_LIMITS.aiGenerate);
   if (!allowed) return { error: "Limite di generazioni raggiunto. Riprova domani." };
 
-  const type = formData.get("type") as string;
-  const zone = formData.get("zone") as string;
-  const size = formData.get("size") as string;
-  const price = formData.get("price") as string;
-  const features = formData.get("features") as string;
+  const parsed = aiGenerateSchema.safeParse({
+    type: formData.get("type"),
+    zone: formData.get("zone"),
+    size: formData.get("size") || undefined,
+    price: formData.get("price") || undefined,
+    features: formData.get("features") || undefined,
+  });
 
-  if (!type || !zone) {
-    return { error: "Tipo e zona sono obbligatori per generare la descrizione" };
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0]?.message ?? "Input non valido" };
   }
 
-  const result = await generateListingDescriptionAI({ type, zone, size, price, features });
+  const result = await generateListingDescriptionAI(parsed.data);
 
   return {
     success: true,
@@ -37,13 +40,15 @@ export async function generateListingDescription(formData: FormData) {
 }
 
 export async function naturalLanguageSearch(formData: FormData) {
-  const query = (formData.get("query") as string || "").trim();
+  const parsed = nlSearchSchema.safeParse({
+    query: formData.get("query"),
+  });
 
-  if (!query || query.length < 3) {
-    return { error: "Inserisci almeno 3 caratteri per la ricerca" };
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0]?.message ?? "Ricerca non valida" };
   }
 
-  const result = await parseNaturalLanguageSearch(query);
+  const result = await parseNaturalLanguageSearch(parsed.data.query);
 
   return {
     success: true,

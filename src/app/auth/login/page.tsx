@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { loginAction } from "@/lib/actions/auth";
 
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState(loginAction, null);
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <main className="flex flex-1 items-center justify-center bg-gray-50 py-12">
@@ -38,14 +39,23 @@ export default function LoginPage() {
 
           <label className="block">
             <span className="text-sm font-medium text-gray-700">Password</span>
-            <input
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
-              placeholder="••••••••"
-            />
+            <div className="relative mt-2">
+              <input
+                name="password"
+                type={showPassword ? "text" : "password"}
+                required
+                autoComplete="current-password"
+                className="w-full rounded-xl border border-gray-300 px-4 py-3 pr-24 text-sm text-gray-900 outline-none transition focus:border-blue-500"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                className="absolute inset-y-1.5 right-2 rounded-lg px-3 text-xs font-semibold text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+              >
+                {showPassword ? "Nascondi" : "Mostra"}
+              </button>
+            </div>
           </label>
 
           <button
@@ -55,6 +65,14 @@ export default function LoginPage() {
           >
             {isPending ? "Accesso in corso..." : "Accedi"}
           </button>
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs text-blue-800">
+            <p className="font-semibold">Accesso sicuro</p>
+            <ul className="mt-2 space-y-1">
+              <li>• Usa dispositivi personali o ricordati di uscire dopo l&apos;uso.</li>
+              <li>• Non condividere le credenziali con coinquilini o intermediari.</li>
+              <li>• Se noti accessi sospetti, cambia password immediatamente.</li>
+            </ul>
+          </div>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-500">
