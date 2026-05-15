@@ -62,6 +62,7 @@ export function NaturalLanguageSearch({ onFiltersExtracted }: NaturalLanguageSea
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           placeholder="Cerca con parole naturali: &quot;monolocale vicino al campus sotto 500€&quot;"
           className="w-full rounded-xl border border-blue-200 bg-blue-50/50 py-3 pl-10 pr-28 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+          aria-label="Ricerca in linguaggio naturale"
           aria-describedby="nl-search-help"
         />
         {query && !loading && (
@@ -106,12 +107,12 @@ export function NaturalLanguageSearch({ onFiltersExtracted }: NaturalLanguageSea
       </div>
 
       {error && (
-        <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+        <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
           {error}
         </p>
       )}
       {interpretation && (
-        <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+        <p role="status" aria-live="polite" className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
           🤖 {interpretation}
         </p>
       )}

@@ -25,6 +25,24 @@ body {
   color: var(--foreground);
 }
 
+/* Skip-to-content link — visible only on keyboard focus */
+.skip-to-content {
+  position: absolute;
+  left: 0.5rem;
+  top: -3rem;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background: #1d4ed8;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: top 0.15s ease;
+}
+.skip-to-content:focus {
+  top: 0.5rem;
+}
+
 ::selection {
   background: rgb(191 219 254);
   color: rgb(17 24 39);

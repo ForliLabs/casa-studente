@@ -79,6 +79,9 @@ export default async function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className="flex min-h-screen flex-col bg-background text-foreground">
+        <a href="#main-content" className="skip-to-content">
+          Salta al contenuto principale
+        </a>
         <ToastProvider>
           <Navbar
             brand="CasaStudente"
@@ -88,7 +91,7 @@ export default async function RootLayout({
             currentLocale={currentLocale}
             user={user ? { name: user.name, email: user.email, role: user.role } : null}
           />
-          <div className="flex flex-1 flex-col">{children}</div>
+          <div id="main-content" className="flex flex-1 flex-col">{children}</div>
           <Footer
             brand="CasaStudente"
             tagline="Alloggi verificati e strumenti digitali per vivere Forlì da studenti."

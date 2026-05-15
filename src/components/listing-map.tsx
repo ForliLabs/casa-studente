@@ -63,7 +63,7 @@ export function ListingMap({ listings, selectedId, onSelectListing, singleListin
   return (
     <div className="space-y-4">
       <div className="relative overflow-hidden rounded-3xl border border-gray-200 bg-gradient-to-br from-green-50 via-blue-50 to-emerald-50">
-        <svg viewBox="0 0 600 400" className="h-full w-full" style={{ minHeight: singleListing ? 300 : 400 }}>
+        <svg viewBox="0 0 600 400" className="h-full w-full" style={{ minHeight: singleListing ? 300 : 400 }} role="group" aria-label="Mappa degli annunci con posizioni relative al campus">
           {/* Grid lines for reference */}
           {[0, 1, 2, 3, 4].map((i) => (
             <line key={`h-${i}`} x1={0} y1={i * 100} x2={600} y2={i * 100} stroke="#e5e7eb" strokeWidth={0.5} />
@@ -94,9 +94,20 @@ export function ListingMap({ listings, selectedId, onSelectListing, singleListin
                 key={pin.id}
                 transform={`translate(${toSvgX(pin.lng)}, ${toSvgY(pin.lat)})`}
                 className="cursor-pointer"
+                role="button"
+                tabIndex={0}
+                aria-label={`${pin.title}, €${pin.price}`}
                 onMouseEnter={() => setHoveredId(pin.id)}
                 onMouseLeave={() => setHoveredId(null)}
+                onFocus={() => setHoveredId(pin.id)}
+                onBlur={() => setHoveredId(null)}
                 onClick={() => onSelectListing?.(pin.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelectListing?.(pin.id);
+                  }
+                }}
               >
                 {/* Distance line to campus */}
                 {isActive && (
