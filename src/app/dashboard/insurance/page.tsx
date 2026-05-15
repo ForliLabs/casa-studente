@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getMyPolicies, getMyClaims, getMyEscrows, getReserveFundStatus } from "@/lib/actions/insurance";
 import { PREMIUM_RATES } from "@/lib/stores/insurance";
 import { getCurrentUser } from "@/lib/auth";
-import { Shield, DollarSign, FileWarning, CheckCircle, Clock, AlertTriangle, Wallet, TrendingUp } from "lucide-react";
+import { Shield, DollarSign, FileWarning, Wallet, TrendingUp } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Assicurazione Affitto — Garanzia",

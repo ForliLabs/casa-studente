@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { getForecastDashboard } from "@/lib/actions/forecasting";
 import { DEMAND_LEVEL_CONFIG } from "@/lib/stores/forecasting";
-import { getCurrentUser } from "@/lib/auth";
 import { TrendingUp, Calendar, MapPin, DollarSign, Sun, Snowflake, Leaf, Cloud } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -10,7 +9,6 @@ export const metadata: Metadata = {
 };
 
 export default async function ForecastingPage() {
-  const user = await getCurrentUser();
   const dashboard = await getForecastDashboard();
 
   if (!dashboard) {

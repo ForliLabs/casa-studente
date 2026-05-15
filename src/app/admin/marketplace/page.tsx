@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getMarketplaceHealth } from "@/lib/actions/marketplace";
-import { Activity, AlertTriangle, BarChart3, Users, Star, Upload, Link2, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, Users, Star, Link2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Marketplace Health",

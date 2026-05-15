@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { getMyDisputes, getDisputeTemplates, getDisputeStats } from "@/lib/actions/disputes";
-import { getCurrentUser } from "@/lib/auth";
 import { Scale, AlertCircle, CheckCircle, Clock, MessageSquare, Camera, FileText, Wrench, DollarSign, Users } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -24,7 +23,6 @@ const TYPE_CONFIG: Record<string, { label: string; icon: React.ReactNode; color:
 };
 
 export default async function DisputesPage() {
-  const user = await getCurrentUser();
   const disputes = await getMyDisputes();
   const templates = await getDisputeTemplates();
   const stats = await getDisputeStats();

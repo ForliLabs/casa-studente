@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: "Il tuo punteggio di affidabilità basato sul comportamento sulla piattaforma CasaStudente.",
 };
 
-function ScoreGauge({ score, tier, tierLabel, tierColor }: { score: number; tier: string; tierLabel: string; tierColor: string }) {
+function ScoreGauge({ score, tierLabel, tierColor }: { score: number; tierLabel: string; tierColor: string }) {
   const circumference = 2 * Math.PI * 45;
   const offset = circumference - (score / 100) * circumference;
 
@@ -90,7 +90,6 @@ export default async function TenantScorePage() {
               <h2 className="mb-6 text-lg font-semibold text-gray-900">Il tuo punteggio</h2>
               <ScoreGauge
                 score={myScore.overallScore}
-                tier={myScore.tier}
                 tierLabel={myScore.tierLabel}
                 tierColor={myScore.tierColor}
               />

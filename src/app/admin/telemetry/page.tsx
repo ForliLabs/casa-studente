@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getTelemetryDashboard } from "@/lib/actions/telemetry";
-import { Activity, TrendingUp, TrendingDown, Minus, BarChart3, Zap, Flag, Monitor, FlaskConical, Gauge } from "lucide-react";
+import { Activity, TrendingUp, TrendingDown, Minus, BarChart3, Zap, Flag, FlaskConical, Gauge } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Telemetria — Adoption Analytics",

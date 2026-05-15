@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getAllListingsWithPricing, getListingPriceAnalysis } from "@/lib/actions/pricing";
+import { getAllListingsWithPricing } from "@/lib/actions/pricing";
 import { priceTrendStore } from "@/lib/stores/pricing";
 import { TrendingUp, TrendingDown, Minus, DollarSign, BarChart3, Target } from "lucide-react";
 
@@ -17,8 +17,6 @@ const badgeConfig = {
 export default async function PricingDashboardPage() {
   const listings = await getAllListingsWithPricing();
   const trends = await priceTrendStore.findAll();
-  const firstListing = listings[0];
-  const analysis = firstListing ? await getListingPriceAnalysis(firstListing.id) : null;
 
   const goodDeals = listings.filter((l) => l.priceBadge === "good_deal").length;
   const fairPrice = listings.filter((l) => l.priceBadge === "fair_price").length;
@@ -149,7 +147,7 @@ export default async function PricingDashboardPage() {
                 </div>
                 <p className="text-sm text-gray-500">{first?.type || "misto"}</p>
                 <div className="mt-3 flex items-end gap-1">
-                  {zoneTrends.map((t, i) => (
+                  {zoneTrends.map((t) => (
                     <div key={t.id} className="flex flex-col items-center gap-1">
                       <div
                         className="w-8 rounded-t bg-emerald-400"

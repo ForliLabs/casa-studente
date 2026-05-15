@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getMyUniversityProfile, getSSOConfigurations, getInstitutionalAPIKeys, getInstitutionalMetrics, getAllUniversityProfiles } from "@/lib/actions/university-sso";
 import { getCurrentUser } from "@/lib/auth";
-import { GraduationCap, Key, Users, Building, CheckCircle, Clock, Globe, Upload, Shield } from "lucide-react";
+import { GraduationCap, Key, Users, Building, CheckCircle, Clock, Globe, Shield } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "SSO Universitario — Integrazione",

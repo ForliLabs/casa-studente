@@ -85,7 +85,7 @@ export default async function InsightsPage() {
           Dati reali derivati dai percorsi degli utenti sulla piattaforma.
         </p>
         <div className="mt-6 space-y-3">
-          {metrics.conversionFunnel.map((step, i) => (
+          {metrics.conversionFunnel.map((step) => (
             <div key={step.stage} className="flex items-center gap-4">
               <span className="w-32 text-sm font-medium text-gray-700">{step.stage}</span>
               <div className="flex-1">
