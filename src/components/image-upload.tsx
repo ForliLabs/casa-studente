@@ -160,9 +160,22 @@ export function ImageGallery({ images, virtualTour, virtualTourUrl, virtualTourD
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const lastFocusedRef = useRef<HTMLElement | null>(null);
 
   const hasRealImages = images.some((img) => img.startsWith("data:") || img.startsWith("http"));
   const displayImages = hasRealImages ? images : [];
+
+  function openLightbox(index: number) {
+    lastFocusedRef.current = document.activeElement as HTMLElement | null;
+    setCurrentIndex(index);
+    setLightboxOpen(true);
+  }
+
+  function closeLightbox() {
+    setLightboxOpen(false);
+    // Return focus to the element that opened the lightbox
+    requestAnimationFrame(() => lastFocusedRef.current?.focus());
+  }
 
   useEffect(() => {
     if (!lightboxOpen) return;
@@ -174,7 +187,7 @@ export function ImageGallery({ images, virtualTour, virtualTourUrl, virtualTourD
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
-        setLightboxOpen(false);
+        closeLightbox();
       }
       if (event.key === "ArrowLeft") {
         event.preventDefault();
@@ -183,6 +196,11 @@ export function ImageGallery({ images, virtualTour, virtualTourUrl, virtualTourD
       if (event.key === "ArrowRight") {
         event.preventDefault();
         setCurrentIndex((value) => (value + 1) % displayImages.length);
+      }
+      // Trap Tab focus within the lightbox
+      if (event.key === "Tab") {
+        event.preventDefault();
+        closeButtonRef.current?.focus();
       }
     }
 
@@ -214,10 +232,7 @@ export function ImageGallery({ images, virtualTour, virtualTourUrl, virtualTourD
           <div className="mt-6 grid gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
             <button
               type="button"
-              onClick={() => {
-                setCurrentIndex(0);
-                setLightboxOpen(true);
-              }}
+              onClick={() => openLightbox(0)}
               className="relative min-h-80 overflow-hidden rounded-3xl"
             >
               <Image src={displayImages[0]} alt="Foto principale" fill sizes="(max-width: 768px) 100vw, 60vw" className="object-cover" unoptimized />
@@ -227,10 +242,7 @@ export function ImageGallery({ images, virtualTour, virtualTourUrl, virtualTourD
                 <button
                   key={index}
                   type="button"
-                  onClick={() => {
-                    setCurrentIndex(index + 1);
-                    setLightboxOpen(true);
-                  }}
+                  onClick={() => openLightbox(index + 1)}
                   className="relative min-h-36 overflow-hidden rounded-3xl"
                 >
                   <Image src={img} alt={`Foto ${index + 2}`} fill sizes="(max-width: 768px) 50vw, 30vw" className="object-cover" unoptimized />
@@ -239,10 +251,7 @@ export function ImageGallery({ images, virtualTour, virtualTourUrl, virtualTourD
               {displayImages.length > 3 && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setCurrentIndex(3);
-                    setLightboxOpen(true);
-                  }}
+                  onClick={() => openLightbox(3)}
                   className="flex min-h-36 items-center justify-center rounded-3xl bg-gray-200 text-sm font-medium text-gray-700"
                 >
                   +{displayImages.length - 3} altre foto
@@ -252,11 +261,19 @@ export function ImageGallery({ images, virtualTour, virtualTourUrl, virtualTourD
           </div>
 
           {lightboxOpen && (
-            <div role="dialog" aria-modal="true" aria-label="Galleria fotografica" className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Galleria fotografica"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) closeLightbox();
+              }}
+            >
               <button
                 ref={closeButtonRef}
                 type="button"
-                onClick={() => setLightboxOpen(false)}
+                onClick={closeLightbox}
                 className="absolute right-4 top-4 rounded-full bg-white/20 p-2 text-white transition hover:bg-white/30"
                 aria-label="Chiudi galleria"
               >
