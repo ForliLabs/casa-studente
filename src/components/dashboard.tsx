@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useDismissibleLayer } from "@/lib/hooks/use-dismissible-layer";
 
@@ -26,37 +26,38 @@ interface DashboardLayoutProps {
 export function DashboardShell({ brand, sections, children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openPathname, setOpenPathname] = useState<string | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const isMobileDrawerOpen = mobileOpen && openPathname === pathname;
+  const closeMobileDrawer = () => {
+    setMobileOpen(false);
+    setOpenPathname(null);
+  };
   const drawerRef = useDismissibleLayer<HTMLDivElement>({
-    isOpen: mobileOpen,
-    onDismiss: () => setMobileOpen(false),
+    isOpen: isMobileDrawerOpen,
+    onDismiss: closeMobileDrawer,
     triggerRef,
   });
 
-  // Close drawer on navigation
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
-
   // Lock body scroll when drawer is open
   useEffect(() => {
-    if (!mobileOpen) return;
+    if (!isMobileDrawerOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [mobileOpen]);
+  }, [isMobileDrawerOpen]);
 
   // Close on resize to desktop
   useEffect(() => {
-    if (!mobileOpen) return;
+    if (!isMobileDrawerOpen) return;
     function handleResize() {
-      if (window.innerWidth >= 1024) setMobileOpen(false);
+      if (window.innerWidth >= 1024) closeMobileDrawer();
     }
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [mobileOpen]);
+  }, [isMobileDrawerOpen]);
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] bg-gray-50">
@@ -74,7 +75,7 @@ export function DashboardShell({ brand, sections, children }: DashboardLayoutPro
       </aside>
 
       {/* Mobile drawer backdrop */}
-      {mobileOpen && (
+      {isMobileDrawerOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
           aria-hidden="true"
@@ -86,7 +87,7 @@ export function DashboardShell({ brand, sections, children }: DashboardLayoutPro
         ref={drawerRef}
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-72 transform border-r border-gray-200 bg-white shadow-xl transition-transform duration-300 ease-in-out lg:hidden",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
+          isMobileDrawerOpen ? "translate-x-0" : "-translate-x-full"
         )}
         role="dialog"
         aria-modal="true"
@@ -94,12 +95,12 @@ export function DashboardShell({ brand, sections, children }: DashboardLayoutPro
       >
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-            <Link href="/dashboard" className="text-lg font-bold text-gray-900" onClick={() => setMobileOpen(false)}>
+            <Link href="/dashboard" className="text-lg font-bold text-gray-900" onClick={closeMobileDrawer}>
               {brand}
             </Link>
             <button
               type="button"
-              onClick={() => setMobileOpen(false)}
+              onClick={closeMobileDrawer}
               className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100"
               aria-label="Chiudi menu"
             >
@@ -108,7 +109,7 @@ export function DashboardShell({ brand, sections, children }: DashboardLayoutPro
               </svg>
             </button>
           </div>
-          <SidebarNav sections={sections} pathname={pathname} onNavigate={() => setMobileOpen(false)} />
+          <SidebarNav sections={sections} pathname={pathname} onNavigate={closeMobileDrawer} />
         </div>
       </div>
 
@@ -119,7 +120,10 @@ export function DashboardShell({ brand, sections, children }: DashboardLayoutPro
             <button
               ref={triggerRef}
               type="button"
-              onClick={() => setMobileOpen(true)}
+              onClick={() => {
+                setOpenPathname(pathname);
+                setMobileOpen(true);
+              }}
               className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition hover:bg-gray-50"
               aria-label="Apri menu dashboard"
               aria-expanded={mobileOpen}

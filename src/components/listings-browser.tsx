@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/feedback";
 import { NaturalLanguageSearch } from "@/components/nl-search";
 import {
   applyListingFilters,
+  getRecommendedListings,
   hasActiveListingFilters,
   parseListingFiltersFromSearchParams,
   sortListings,
@@ -29,10 +30,13 @@ const typeOptions: Array<ListingType | "tutti"> = [
 
 const sortOptions: Array<{ value: ListingSortOption; label: string }> = [
   { value: "recommended", label: "Consigliati" },
+  { value: "best-match", label: "Best match AI" },
   { value: "price-asc", label: "Prezzo crescente" },
   { value: "price-desc", label: "Prezzo decrescente" },
   { value: "availability-soon", label: "Disponibili prima" },
 ];
+
+const amenitySuggestions = ["wifi", "lavatrice", "balcone", "aria condizionata"];
 
 export function ListingsBrowser({ listings }: ListingsBrowserProps) {
   const router = useRouter();
@@ -45,8 +49,12 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
   );
 
   const filteredListings = useMemo(
-    () => sortListings(applyListingFilters(listings, filters), sort),
+    () => sortListings(applyListingFilters(listings, filters), sort, filters),
     [filters, listings, sort]
+  );
+  const recommendedListings = useMemo(
+    () => getRecommendedListings(applyListingFilters(listings, filters), filters),
+    [filters, listings]
   );
   const hasActiveFilters = hasActiveListingFilters(filters);
 
@@ -76,11 +84,24 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
     replaceParams(next);
   }
 
+  function toggleFeature(feature: string) {
+    const next = new URLSearchParams(currentParams.toString());
+    const selected = new Set(filters.features ?? []);
+    if (selected.has(feature)) selected.delete(feature);
+    else selected.add(feature);
+
+    if (selected.size > 0) next.set("features", Array.from(selected).join(","));
+    else next.delete("features");
+
+    if (next.get("sort") !== "best-match") next.set("sort", "best-match");
+    replaceParams(next);
+  }
+
   function resetFilters() {
     router.replace(pathname);
   }
 
-  function applyNaturalFilters(extracted: Record<string, string | number | boolean>) {
+  function applyNaturalFilters(extracted: Record<string, string | number | boolean | string[]>) {
     const next = new URLSearchParams(currentParams.toString());
     const textMappings = [
       ["zone", "zone"],
@@ -96,6 +117,14 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
     if (typeof extracted.maxPrice === "number") next.set("maxPrice", String(extracted.maxPrice));
     if (extracted.verified === true) next.set("verified", "1");
     if (extracted.virtualTour === true) next.set("virtualTour", "1");
+    if (extracted.utilitiesIncluded === true) next.set("utilities", "1");
+    if (extracted.furnished === true) next.set("furnished", "1");
+    if (extracted.securePayments === true) next.set("secure", "1");
+    const features = extracted.features;
+    if (Array.isArray(features) && features.length > 0) {
+      next.set("features", features.map((value) => String(value)).join(","));
+    }
+    next.set("sort", "best-match");
     replaceParams(next);
   }
 
@@ -119,6 +148,16 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
     filters.utilitiesIncluded
       ? { label: "Utenze incluse", onRemove: () => updateBooleanParam("utilities", false) }
       : null,
+    filters.furnishedOnly
+      ? { label: "Arredato", onRemove: () => updateBooleanParam("furnished", false) }
+      : null,
+    filters.securePaymentsOnly
+      ? { label: "Pagamenti sicuri", onRemove: () => updateBooleanParam("secure", false) }
+      : null,
+    ...(filters.features ?? []).map((feature) => ({
+      label: `Feature: ${feature}`,
+      onRemove: () => updateTextParam("features", (filters.features ?? []).filter((item) => item !== feature).join(",")),
+    })),
   ].filter(Boolean) as Array<{ label: string; onRemove: () => void }>;
 
   return (
@@ -132,6 +171,8 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
           verifiedOnly={Boolean(filters.verifiedOnly)}
           virtualTourOnly={Boolean(filters.virtualTourOnly)}
           utilitiesIncluded={Boolean(filters.utilitiesIncluded)}
+          furnishedOnly={Boolean(filters.furnishedOnly)}
+          securePaymentsOnly={Boolean(filters.securePaymentsOnly)}
           sort={sort}
           onZoneChange={(value) => updateTextParam("zone", value)}
           onMinPriceChange={(value) => updateTextParam("minPrice", value)}
@@ -140,6 +181,8 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
           onVerifiedOnlyChange={(value) => updateBooleanParam("verified", value)}
           onVirtualTourOnlyChange={(value) => updateBooleanParam("virtualTour", value)}
           onUtilitiesIncludedChange={(value) => updateBooleanParam("utilities", value)}
+          onFurnishedOnlyChange={(value) => updateBooleanParam("furnished", value)}
+          onSecurePaymentsOnlyChange={(value) => updateBooleanParam("secure", value)}
           onSortChange={updateSort}
           onReset={resetFilters}
         />
@@ -155,6 +198,50 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
           <div className="mt-4">
             <NaturalLanguageSearch onFiltersExtracted={applyNaturalFilters} />
           </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {amenitySuggestions.map((feature) => {
+              const active = filters.features?.includes(feature);
+              return (
+                <button
+                  key={feature}
+                  type="button"
+                  onClick={() => toggleFeature(feature)}
+                  className={cn(
+                    "rounded-full border px-3 py-1.5 text-xs font-medium transition",
+                    active
+                      ? "border-blue-600 bg-blue-600 text-white"
+                      : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                  )}
+                >
+                  {feature}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => updateBooleanParam("furnished", !filters.furnishedOnly)}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-xs font-medium transition",
+                filters.furnishedOnly
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+              )}
+            >
+              Arredato
+            </button>
+            <button
+              type="button"
+              onClick={() => updateBooleanParam("secure", !filters.securePaymentsOnly)}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-xs font-medium transition",
+                filters.securePaymentsOnly
+                  ? "border-emerald-700 bg-emerald-700 text-white"
+                  : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+              )}
+            >
+              Pagamenti sicuri
+            </button>
+          </div>
         </div>
 
         <div className="mt-6 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm lg:hidden">
@@ -166,6 +253,8 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
             verifiedOnly={Boolean(filters.verifiedOnly)}
             virtualTourOnly={Boolean(filters.virtualTourOnly)}
             utilitiesIncluded={Boolean(filters.utilitiesIncluded)}
+            furnishedOnly={Boolean(filters.furnishedOnly)}
+            securePaymentsOnly={Boolean(filters.securePaymentsOnly)}
             sort={sort}
             onZoneChange={(value) => updateTextParam("zone", value)}
             onMinPriceChange={(value) => updateTextParam("minPrice", value)}
@@ -174,11 +263,57 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
             onVerifiedOnlyChange={(value) => updateBooleanParam("verified", value)}
             onVirtualTourOnlyChange={(value) => updateBooleanParam("virtualTour", value)}
             onUtilitiesIncludedChange={(value) => updateBooleanParam("utilities", value)}
+            onFurnishedOnlyChange={(value) => updateBooleanParam("furnished", value)}
+            onSecurePaymentsOnlyChange={(value) => updateBooleanParam("secure", value)}
             onSortChange={updateSort}
             onReset={resetFilters}
             compact
           />
         </div>
+
+        {recommendedListings.length > 0 && hasActiveFilters && (
+          <section className="mt-6 rounded-3xl border border-indigo-200 bg-gradient-to-r from-indigo-50 via-white to-blue-50 p-5 shadow-sm">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">Match AI</p>
+                <h2 className="mt-2 text-lg font-semibold text-gray-900">I risultati più vicini alla tua richiesta</h2>
+              </div>
+              <p className="text-sm text-gray-500">Classifica dinamica basata su budget, zona, servizi e fiducia.</p>
+            </div>
+            <div className="mt-4 grid gap-4 lg:grid-cols-3">
+              {recommendedListings.map((item) => (
+                <article key={item.listing.id} className="rounded-2xl border border-white bg-white/90 p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{item.listing.title}</p>
+                      <p className="mt-1 text-xs text-gray-500">{item.listing.zone} · €{item.listing.price}/mese</p>
+                    </div>
+                    <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+                      Score {item.score}
+                    </span>
+                  </div>
+                  <ul className="mt-3 space-y-2 text-sm text-gray-600">
+                    {item.reasons.map((reason) => (
+                      <li key={reason} className="flex gap-2">
+                        <span className="mt-1 h-2 w-2 rounded-full bg-indigo-500" />
+                        <span>{reason}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href={`/listings/${item.listing.id}`} className="mt-4 inline-flex text-sm font-semibold text-indigo-700 hover:text-indigo-800">
+                    Apri scheda →
+                  </Link>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {sort === "best-match" && hasActiveFilters && (
+          <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 shadow-sm">
+            I risultati sono ordinati per affinità AI in base ai tuoi filtri attivi.
+          </div>
+        )}
 
         <div className="mt-6 flex flex-col gap-4 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -322,6 +457,8 @@ interface FilterControlsProps {
   verifiedOnly: boolean;
   virtualTourOnly: boolean;
   utilitiesIncluded: boolean;
+  furnishedOnly: boolean;
+  securePaymentsOnly: boolean;
   sort: ListingSortOption;
   compact?: boolean;
   onZoneChange: (value: string) => void;
@@ -331,6 +468,8 @@ interface FilterControlsProps {
   onVerifiedOnlyChange: (value: boolean) => void;
   onVirtualTourOnlyChange: (value: boolean) => void;
   onUtilitiesIncludedChange: (value: boolean) => void;
+  onFurnishedOnlyChange: (value: boolean) => void;
+  onSecurePaymentsOnlyChange: (value: boolean) => void;
   onSortChange: (value: ListingSortOption) => void;
   onReset: () => void;
 }
@@ -343,6 +482,8 @@ function FilterControls({
   verifiedOnly,
   virtualTourOnly,
   utilitiesIncluded,
+  furnishedOnly,
+  securePaymentsOnly,
   sort,
   compact = false,
   onZoneChange,
@@ -352,6 +493,8 @@ function FilterControls({
   onVerifiedOnlyChange,
   onVirtualTourOnlyChange,
   onUtilitiesIncludedChange,
+  onFurnishedOnlyChange,
+  onSecurePaymentsOnlyChange,
   onSortChange,
   onReset,
 }: FilterControlsProps) {
@@ -469,6 +612,24 @@ function FilterControls({
             className="h-4 w-4 rounded border-gray-300 text-blue-600"
           />
           Utenze incluse
+        </label>
+        <label className="flex items-center gap-3 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={furnishedOnly}
+            onChange={(event) => onFurnishedOnlyChange(event.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-blue-600"
+          />
+          Già arredato
+        </label>
+        <label className="flex items-center gap-3 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={securePaymentsOnly}
+            onChange={(event) => onSecurePaymentsOnlyChange(event.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-blue-600"
+          />
+          Pagamenti sicuri
         </label>
       </div>
     </>

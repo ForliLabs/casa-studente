@@ -34,6 +34,24 @@ describe("AI Service — Fallback Mode", () => {
       expect(result.filters.maxPrice).toBe(500);
     });
 
+    it("detects advanced amenities and safety preferences", async () => {
+      const result = await parseNaturalLanguageSearch(
+        "furnished room with secure payments, wifi, bills included and virtual tour"
+      );
+      expect(result.filters.furnished).toBe(true);
+      expect(result.filters.securePayments).toBe(true);
+      expect(result.filters.utilitiesIncluded).toBe(true);
+      expect(result.filters.virtualTour).toBe(true);
+      expect(result.filters.features).toContain("wifi");
+    });
+
+    it("detects explicit price ranges", async () => {
+      const result = await parseNaturalLanguageSearch("bilocale tra 500 e 750 euro");
+      expect(result.filters.type).toBe("bilocale");
+      expect(result.filters.minPrice).toBe(500);
+      expect(result.filters.maxPrice).toBe(750);
+    });
+
     it("provides interpretation", async () => {
       const result = await parseNaturalLanguageSearch("bilocale campus verified");
       expect(result.interpretation).toBeTruthy();

@@ -62,9 +62,10 @@ export function LanguageSwitcher({ currentLocale }: LanguageSwitcherProps) {
   }
 
   useEffect(() => {
-    if (!open) return;
-    buttonRef.current?.setAttribute("aria-expanded", "true");
-    return () => buttonRef.current?.setAttribute("aria-expanded", "false");
+    const button = buttonRef.current;
+    if (!open || !button) return;
+    button.setAttribute("aria-expanded", "true");
+    return () => button.setAttribute("aria-expanded", "false");
   }, [open]);
 
   return (

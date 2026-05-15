@@ -3,6 +3,7 @@ import { listings } from "@/lib/data";
 import {
   applyListingFilters,
   getBudgetFilterFromQuiz,
+  getRecommendedListings,
   parseListingFiltersFromSearchParams,
   sortListings,
 } from "@/lib/listings-search";
@@ -24,13 +25,38 @@ describe("listings-search helpers", () => {
   });
 
   it("parses search params into filters", () => {
-    const params = new URLSearchParams("zone=Centro&maxPrice=600&verified=1&sort=price-desc");
+    const params = new URLSearchParams("zone=Centro&maxPrice=600&verified=1&furnished=1&secure=1&sort=best-match");
     const result = parseListingFiltersFromSearchParams(params);
 
     expect(result.zone).toBe("Centro");
     expect(result.maxPrice).toBe(600);
     expect(result.verifiedOnly).toBe(true);
-    expect(result.sort).toBe("price-desc");
+    expect(result.furnishedOnly).toBe(true);
+    expect(result.securePaymentsOnly).toBe(true);
+    expect(result.sort).toBe("best-match");
+  });
+
+  it("returns AI recommendations ordered by best match", () => {
+    const result = getRecommendedListings(listings, {
+      zone: "Campus",
+      maxPrice: 450,
+      virtualTourOnly: true,
+      features: ["wifi"],
+    });
+
+    expect(result[0]?.listing.id).toBe("via-colombo-21-singola");
+    expect(result[0]?.score).toBeGreaterThan(0);
+    expect(result[0]?.reasons.join(" ")).toContain("Campus");
+  });
+
+  it("supports best-match sorting", () => {
+    const result = sortListings(listings, "best-match", {
+      zone: "Campus",
+      maxPrice: 450,
+      virtualTourOnly: true,
+    });
+
+    expect(result[0]?.id).toBe("via-colombo-21-singola");
   });
 
   it("maps quiz answers to budget filters", () => {
