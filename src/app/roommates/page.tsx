@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getCurrentUser, userStore } from "@/lib/auth";
 import { roommateStore, calculateCompatibility, type RoommateProfile } from "@/lib/stores";
 import { RoommateList } from "@/components/roommate-list";
+import { SearchTogetherPanel } from "@/components/search-together-panel";
 
 export const metadata: Metadata = {
   title: "Coinquilini",
@@ -45,7 +46,20 @@ export default async function RoommatesPage() {
           </p>
         </div>
 
-        <div className="mt-10">
+        <div className="mt-10 space-y-8">
+          {currentProfile && profilesWithScores.length > 0 && (
+            <SearchTogetherPanel
+              roommates={profilesWithScores.map((p) => ({
+                id: p.id,
+                name: p.name,
+                compatibility: p.compatibility,
+                budgetMin: p.budgetMin,
+                budgetMax: p.budgetMax,
+                preferredZones: p.preferredZones,
+              }))}
+            />
+          )}
+
           <RoommateList
             profiles={profilesWithScores}
             hasProfile={!!currentProfile}

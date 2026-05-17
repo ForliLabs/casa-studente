@@ -587,3 +587,168 @@ export function getWalkingTime(distanceMeters: number): number {
 export function getCyclingTime(distanceMeters: number): number {
   return Math.round(distanceMeters / 250); // ~250m/min cycling speed
 }
+
+// ============ FAVORITES (Feature: Listing Favorites) ============
+
+export interface Favorite {
+  id: string;
+  userId: string;
+  listingId: string;
+  createdAt: string;
+}
+
+export const favoriteStore = new InMemoryStore<Favorite>();
+
+favoriteStore.seed([
+  {
+    id: "fav-1",
+    userId: "user-student-1",
+    listingId: "via-colombo-21-singola",
+    createdAt: new Date(Date.now() - 7 * 86400000).toISOString(),
+  },
+  {
+    id: "fav-2",
+    userId: "user-student-1",
+    listingId: "piazzale-vittoria-6-doppia",
+    createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
+  },
+  {
+    id: "fav-3",
+    userId: "user-student-2",
+    listingId: "viale-roma-48-bilocale",
+    createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
+  },
+]);
+
+// ============ COST CALCULATOR (Feature: Monthly Cost Calculator) ============
+
+export interface MonthlyCostBreakdown {
+  rent: number;
+  utilitiesEstimate: number;
+  utilitiesIncluded: boolean;
+  utilitiesNote: string;
+  transportEstimate: number;
+  transportNote: string;
+  totalEstimate: number;
+}
+
+/**
+ * Parse the Italian utilities string to extract cost information.
+ * Returns estimated monthly utility cost and whether utilities are included.
+ */
+export function parseUtilitiesCost(utilities: string): { estimate: number; included: boolean; note: string } {
+  const lower = utilities.toLowerCase();
+
+  // Fully included
+  if (lower.includes("tutto incluso") || lower.includes("tutte incluse")) {
+    return { estimate: 0, included: true, note: "Tutte le utenze incluse nel canone" };
+  }
+
+  // Partially included with cap
+  const capMatch = lower.match(/inclus[eio]?\s+fino\s+a\s+[€]?(\d+)/);
+  if (capMatch) {
+    return { estimate: 0, included: true, note: `Utenze incluse fino a €${capMatch[1]}/mese` };
+  }
+
+  // Excluded with estimate
+  const estimateMatch = lower.match(/stima\s+[€]?(\d+)/);
+  if (estimateMatch) {
+    return { estimate: Number(estimateMatch[1]), included: false, note: `Stima utenze: €${estimateMatch[1]}/mese` };
+  }
+
+  // Utilities at consumption (check before partial "inclus" to avoid false match)
+  if (lower.includes("consumo")) {
+    return { estimate: 70, included: false, note: "Utenze a consumo, stima media ~€70/mese" };
+  }
+
+  // Partially included (condo fees, water, etc.) — not fully included
+  if (lower.includes("inclus")) {
+    return { estimate: 30, included: false, note: "Alcune spese incluse, utenze extra stimate ~€30/mese" };
+  }
+
+  // Default: unknown
+  return { estimate: 60, included: false, note: "Utenze non specificate, stima media ~€60/mese" };
+}
+
+/**
+ * Estimate monthly transport cost based on zone distance to campus.
+ */
+export function estimateTransportCost(zone: string): { estimate: number; note: string } {
+  const zoneTransport: Record<string, { estimate: number; note: string }> = {
+    "Campus": { estimate: 0, note: "A piedi dal campus — nessun costo di trasporto" },
+    "Centro": { estimate: 10, note: "In bici o a piedi — costo minimo" },
+    "Stazione": { estimate: 25, note: "Bus o bici — abbonamento bus ~€25/mese" },
+    "San Benedetto": { estimate: 25, note: "Bus consigliato — abbonamento ~€25/mese" },
+    "Cava": { estimate: 25, note: "Bus consigliato — abbonamento ~€25/mese" },
+    "Ronco": { estimate: 35, note: "Bus o mezzo proprio — stima ~€35/mese" },
+    "Ospedaletto": { estimate: 25, note: "Bus consigliato — abbonamento ~€25/mese" },
+  };
+
+  return zoneTransport[zone] ?? { estimate: 25, note: "Stima trasporto ~€25/mese" };
+}
+
+/**
+ * Calculate full monthly cost breakdown for a listing.
+ */
+export function calculateMonthlyCost(
+  rent: number,
+  utilities: string,
+  zone: string
+): MonthlyCostBreakdown {
+  const utilityInfo = parseUtilitiesCost(utilities);
+  const transportInfo = estimateTransportCost(zone);
+
+  return {
+    rent,
+    utilitiesEstimate: utilityInfo.estimate,
+    utilitiesIncluded: utilityInfo.included,
+    utilitiesNote: utilityInfo.note,
+    transportEstimate: transportInfo.estimate,
+    transportNote: transportInfo.note,
+    totalEstimate: rent + utilityInfo.estimate + transportInfo.estimate,
+  };
+}
+
+// ============ ROOMMATE-AWARE SEARCH (Feature: Search Together) ============
+
+/**
+ * Merge two roommate profiles' preferences into listing search filters.
+ * Finds the budget intersection and union of preferred zones.
+ */
+export function mergeRoommatePreferences(
+  profiles: Array<{ budgetMin: number; budgetMax: number; preferredZones: string[]; petTolerant: boolean; smokingTolerant: boolean }>
+): {
+  budgetMin: number;
+  budgetMax: number;
+  zones: string[];
+  requirePetFriendly: boolean;
+  requireNoSmoking: boolean;
+} {
+  if (profiles.length === 0) {
+    return { budgetMin: 0, budgetMax: 10000, zones: [], requirePetFriendly: false, requireNoSmoking: false };
+  }
+
+  // Combined budget is the sum of individual budgets (for shared apartments)
+  const budgetMin = profiles.reduce((sum, p) => sum + p.budgetMin, 0);
+  const budgetMax = profiles.reduce((sum, p) => sum + p.budgetMax, 0);
+
+  // Zones: intersection first, fall back to union if intersection is empty
+  const allZones = profiles.map((p) => new Set(p.preferredZones));
+  let zoneIntersection = [...allZones[0]].filter((z) => allZones.every((s) => s.has(z)));
+  if (zoneIntersection.length === 0) {
+    zoneIntersection = [...new Set(profiles.flatMap((p) => p.preferredZones))];
+  }
+
+  // Pet-friendly only if ALL roommates tolerate pets (petTolerant = "Animali ammessi")
+  const requirePetFriendly = profiles.every((p) => p.petTolerant);
+  // No smoking if ANY roommate doesn't tolerate smoking
+  const requireNoSmoking = profiles.some((p) => !p.smokingTolerant);
+
+  return {
+    budgetMin,
+    budgetMax,
+    zones: zoneIntersection,
+    requirePetFriendly,
+    requireNoSmoking,
+  };
+}

@@ -2,12 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ContactForm } from "@/components/contact-form";
+import { FavoriteButton } from "@/components/favorite-button";
 import { ImageGallery } from "@/components/image-upload";
+import { MonthlyCostCalculator } from "@/components/monthly-cost-calculator";
+import { ShareListingButton } from "@/components/share-listing-button";
 import { SingleListingMap } from "@/components/listing-map";
 import { TourRequestPanel } from "@/components/tour-request-panel";
 import { getCurrentUser, userStore } from "@/lib/auth";
 import { getListingById } from "@/lib/data";
 import { getLandlordAvailability, getVirtualTour360 } from "@/lib/actions/tours";
+import { getFavoriteListingIds } from "@/lib/actions/favorites";
 import { reviewStore, calculateTrustScore } from "@/lib/stores";
 
 interface ListingPageProps {
@@ -36,11 +40,12 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
     notFound();
   }
 
-  const [listingReviews, landlordReviews, landlordAccount, currentUser] = await Promise.all([
+  const [listingReviews, landlordReviews, landlordAccount, currentUser, favoriteIds] = await Promise.all([
     reviewStore.filter((review) => review.listingId === id),
     reviewStore.filter((review) => review.revieweeName === listing.landlord.name),
     userStore.filter((candidate) => candidate.email === listing.landlord.email).then((users) => users[0] ?? null),
     getCurrentUser(),
+    getFavoriteListingIds(),
   ]);
   const [virtualTour360, landlordAvailability] = await Promise.all([
     getVirtualTour360(listing.id),
@@ -79,9 +84,16 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
                   </h1>
                   <p className="mt-3 text-lg text-gray-600">{listing.address}</p>
                 </div>
-                <div className="rounded-2xl bg-slate-950 px-5 py-4 text-white shadow-lg">
-                  <p className="text-sm text-slate-300">Canone mensile</p>
-                  <p className="mt-1 text-3xl font-bold">&euro;{listing.price}</p>
+                <div className="flex items-start gap-3">
+                  <div className="rounded-2xl bg-slate-950 px-5 py-4 text-white shadow-lg">
+                    <p className="text-sm text-slate-300">Canone mensile</p>
+                    <p className="mt-1 text-3xl font-bold">&euro;{listing.price}</p>
+                  </div>
+                  <FavoriteButton
+                    listingId={listing.id}
+                    isFavorited={favoriteIds.includes(listing.id)}
+                    size="md"
+                  />
                 </div>
               </div>
 
@@ -140,6 +152,13 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
                 </div>
               </div>
             </section>
+
+            {/* Monthly Cost Calculator */}
+            <MonthlyCostCalculator
+              rent={listing.price}
+              utilities={listing.utilities}
+              zone={listing.zone}
+            />
 
             {/* Image Gallery (Feature 3) */}
             <section className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
@@ -253,6 +272,7 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900">Azioni rapide</h3>
               <div className="mt-4 space-y-3">
+                <ShareListingButton listingId={listing.id} listingTitle={listing.title} />
                 <Link href="/reviews" className="block rounded-xl border border-gray-200 px-4 py-3 text-center text-sm font-medium text-gray-700 transition hover:bg-gray-50">
                   Vedi tutte le recensioni
                 </Link>
@@ -262,6 +282,14 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
                 <Link href="/roommates" className="block rounded-xl border border-gray-200 px-4 py-3 text-center text-sm font-medium text-gray-700 transition hover:bg-gray-50">
                   Cerca coinquilini
                 </Link>
+                {favoriteIds.length >= 2 && (
+                  <Link
+                    href={`/listings/compare?ids=${favoriteIds.slice(0, 4).join(",")}`}
+                    className="block rounded-xl bg-indigo-600 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-indigo-700"
+                  >
+                    Confronta preferiti ({Math.min(favoriteIds.length, 4)})
+                  </Link>
+                )}
               </div>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ListingsBrowser } from "@/components/listings-browser";
 import { getAllListings } from "@/lib/data";
+import { getFavoriteListingIds } from "@/lib/actions/favorites";
 
 export const metadata: Metadata = {
   title: "Annunci",
@@ -8,7 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default async function ListingsPage() {
-  const listings = await getAllListings();
+  const [listings, favoriteIds] = await Promise.all([
+    getAllListings(),
+    getFavoriteListingIds(),
+  ]);
 
   return (
     <main className="flex-1 bg-gray-50 py-12 sm:py-16">
@@ -26,7 +30,7 @@ export default async function ListingsPage() {
         </div>
 
         <div className="mt-10">
-          <ListingsBrowser listings={listings} />
+          <ListingsBrowser listings={listings} favoriteIds={favoriteIds} />
         </div>
       </div>
     </main>

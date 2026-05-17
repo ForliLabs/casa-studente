@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/feedback";
+import { FavoriteButton } from "@/components/favorite-button";
 import { NaturalLanguageSearch } from "@/components/nl-search";
 import {
   applyListingFilters,
@@ -18,6 +19,7 @@ import type { Listing, ListingType } from "@/lib/data";
 
 interface ListingsBrowserProps {
   listings: Listing[];
+  favoriteIds?: string[];
 }
 
 const typeOptions: Array<ListingType | "tutti"> = [
@@ -38,7 +40,8 @@ const sortOptions: Array<{ value: ListingSortOption; label: string }> = [
 
 const amenitySuggestions = ["wifi", "lavatrice", "balcone", "aria condizionata"];
 
-export function ListingsBrowser({ listings }: ListingsBrowserProps) {
+export function ListingsBrowser({ listings, favoriteIds = [] }: ListingsBrowserProps) {
+  const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -230,6 +233,7 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
                   key={feature}
                   type="button"
                   onClick={() => toggleFeature(feature)}
+                  aria-pressed={!!active}
                   className={cn(
                     "rounded-full border px-3 py-1.5 text-xs font-medium transition",
                     active
@@ -244,6 +248,7 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
             <button
               type="button"
               onClick={() => updateBooleanParam("furnished", !filters.furnishedOnly)}
+              aria-pressed={!!filters.furnishedOnly}
               className={cn(
                 "rounded-full border px-3 py-1.5 text-xs font-medium transition",
                 filters.furnishedOnly
@@ -256,6 +261,7 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
             <button
               type="button"
               onClick={() => updateBooleanParam("secure", !filters.securePaymentsOnly)}
+              aria-pressed={!!filters.securePaymentsOnly}
               className={cn(
                 "rounded-full border px-3 py-1.5 text-xs font-medium transition",
                 filters.securePaymentsOnly
@@ -347,7 +353,7 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
         )}
 
         {isPending && (
-          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 shadow-sm">
+          <div role="status" aria-live="polite" className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 shadow-sm">
             Aggiornamento risultati in corso…
           </div>
         )}
@@ -361,7 +367,7 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
         <div className="mt-6 flex flex-col gap-4 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Annunci disponibili</h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500" role="status" aria-live="polite">
               {filteredListings.length} risultati su {listings.length} annunci per studenti a Forlì.
             </p>
           </div>
@@ -375,6 +381,7 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
                   key={option.value}
                   type="button"
                   onClick={() => updateViewMode(option.value)}
+                  aria-pressed={viewMode === option.value}
                   className={cn(
                     "rounded-lg px-3 py-1.5 text-xs font-semibold transition",
                     viewMode === option.value ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
@@ -392,6 +399,14 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
               >
                 Resetta filtri
               </button>
+            )}
+            {favoriteIds.length >= 2 && (
+              <Link
+                href={`/listings/compare?ids=${favoriteIds.slice(0, 4).join(",")}`}
+                className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+              >
+                Confronta ({Math.min(favoriteIds.length, 4)})
+              </Link>
             )}
           </div>
         </div>
@@ -456,7 +471,7 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
                       <span>{listing.zone}</span>
                       {listing.virtualTour && <span>Tour virtuale</span>}
                     </div>
-                    <p className="mt-3 text-lg font-semibold">{listing.title}</p>
+                    <h3 className="mt-3 text-lg font-semibold">{listing.title}</h3>
                     <p className="mt-2 text-sm text-blue-50 line-clamp-2">{listing.features.slice(0, 2).join(" · ")}</p>
                   </div>
                 </div>
@@ -467,15 +482,21 @@ export function ListingsBrowser({ listings }: ListingsBrowserProps) {
                       <p className="text-2xl font-bold text-gray-900">€{listing.price}</p>
                       <p className="text-sm text-gray-500">al mese</p>
                     </div>
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                        {listing.type}
-                      </span>
-                      {listing.verified && (
-                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                          Verificato
+                    <div className="flex items-center gap-2">
+                      <FavoriteButton
+                        listingId={listing.id}
+                        isFavorited={favoriteSet.has(listing.id)}
+                      />
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                          {listing.type}
                         </span>
-                      )}
+                        {listing.verified && (
+                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                            Verificato
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
