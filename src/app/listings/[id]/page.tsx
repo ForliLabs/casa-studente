@@ -5,6 +5,7 @@ import { ContactForm } from "@/components/contact-form";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ImageGallery } from "@/components/image-upload";
 import { MonthlyCostCalculator } from "@/components/monthly-cost-calculator";
+import { ReviewForm } from "@/components/review-form";
 import { ShareListingButton } from "@/components/share-listing-button";
 import { SingleListingMap } from "@/components/listing-map";
 import { TourRequestPanel } from "@/components/tour-request-panel";
@@ -204,6 +205,16 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
                   ))}
                 </div>
               </section>
+            )}
+
+            {/* Review submission form — visible only to logged-in users */}
+            {currentUser && landlordAccount && currentUser.id !== landlordAccount.id && (
+              <ReviewForm
+                listingId={listing.id}
+                listingTitle={listing.title}
+                revieweeId={landlordAccount.id}
+                revieweeName={listing.landlord.name}
+              />
             )}
           </div>
 

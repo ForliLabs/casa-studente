@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, userStore } from "@/lib/auth";
 import { createReviewSchema } from "@/lib/validation";
 import { reviewStore, type Review } from "@/lib/stores";
+import { getListingById } from "@/lib/data";
 
 function generateId(): string {
   return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -21,10 +22,10 @@ export async function submitReviewAction(formData: FormData) {
     listingId: formData.get("listingId"),
     listingTitle: formData.get("listingTitle"),
     ratingOverall: formData.get("ratingOverall"),
-    ratingCleanliness: formData.get("ratingCleanliness") || formData.get("ratingOverall"),
-    ratingCommunication: formData.get("ratingCommunication") || formData.get("ratingOverall"),
-    ratingAccuracy: formData.get("ratingAccuracy") || formData.get("ratingOverall"),
-    ratingValue: formData.get("ratingValue") || formData.get("ratingOverall"),
+    ratingCleanliness: formData.get("ratingCleanliness"),
+    ratingCommunication: formData.get("ratingCommunication"),
+    ratingAccuracy: formData.get("ratingAccuracy"),
+    ratingValue: formData.get("ratingValue"),
     comment: formData.get("comment"),
   });
 
@@ -32,15 +33,50 @@ export async function submitReviewAction(formData: FormData) {
     return { error: parsed.error.errors[0].message };
   }
 
+  // --- Server-side verification: do not trust client-supplied identity ---
+
+  // Prevent self-reviews
+  if (user.id === parsed.data.revieweeId) {
+    return { error: "Non puoi recensire te stesso" };
+  }
+
+  // Verify listing exists
+  const listing = await getListingById(parsed.data.listingId);
+  if (!listing) {
+    return { error: "Annuncio non trovato" };
+  }
+
+  // Resolve the actual landlord from the listing
+  const landlordAccounts = await userStore.filter(
+    (u) => u.email === listing.landlord.email
+  );
+  const landlordAccount = landlordAccounts[0];
+  if (!landlordAccount) {
+    return { error: "Proprietario non trovato" };
+  }
+
+  // Verify the reviewee matches the listing's actual landlord
+  if (landlordAccount.id !== parsed.data.revieweeId) {
+    return { error: "Il destinatario della recensione non corrisponde al proprietario dell'annuncio" };
+  }
+
+  // Prevent duplicate reviews (same reviewer + same listing)
+  const existingReviews = await reviewStore.filter(
+    (r) => r.reviewerId === user.id && r.listingId === parsed.data.listingId
+  );
+  if (existingReviews.length > 0) {
+    return { error: "Hai già lasciato una recensione per questo annuncio" };
+  }
+
   const review: Review = {
     id: `review-${generateId()}`,
     reviewerId: user.id,
     reviewerName: user.name,
     reviewerRole: user.role as "student" | "landlord",
-    revieweeId: parsed.data.revieweeId,
-    revieweeName: parsed.data.revieweeName,
-    listingId: parsed.data.listingId,
-    listingTitle: parsed.data.listingTitle,
+    revieweeId: landlordAccount.id,
+    revieweeName: landlordAccount.name,
+    listingId: listing.id,
+    listingTitle: listing.title,
     ratingOverall: parsed.data.ratingOverall,
     ratingCleanliness: parsed.data.ratingCleanliness,
     ratingCommunication: parsed.data.ratingCommunication,
@@ -54,7 +90,7 @@ export async function submitReviewAction(formData: FormData) {
 
   await reviewStore.create(review);
   revalidatePath("/reviews");
-  revalidatePath(`/listings/${parsed.data.listingId}`);
+  revalidatePath(`/listings/${listing.id}`);
   return { success: true };
 }
 

@@ -168,6 +168,50 @@ describe("Validation Schemas — Reviews", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("defaults omitted sub-ratings to ratingOverall", () => {
+    const result = createReviewSchema.safeParse({
+      revieweeId: "user-1",
+      revieweeName: "Test User",
+      listingId: "l-1",
+      listingTitle: "Test Listing",
+      ratingOverall: 4,
+      ratingCleanliness: 0,
+      ratingCommunication: 0,
+      ratingAccuracy: 0,
+      ratingValue: 0,
+      comment: "This is a detailed review with enough content.",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.ratingCleanliness).toBe(4);
+      expect(result.data.ratingCommunication).toBe(4);
+      expect(result.data.ratingAccuracy).toBe(4);
+      expect(result.data.ratingValue).toBe(4);
+    }
+  });
+
+  it("keeps sub-ratings when explicitly provided", () => {
+    const result = createReviewSchema.safeParse({
+      revieweeId: "user-1",
+      revieweeName: "Test User",
+      listingId: "l-1",
+      listingTitle: "Test Listing",
+      ratingOverall: 5,
+      ratingCleanliness: 3,
+      ratingCommunication: 2,
+      ratingAccuracy: 4,
+      ratingValue: 1,
+      comment: "This is a detailed review with enough content.",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.ratingCleanliness).toBe(3);
+      expect(result.data.ratingCommunication).toBe(2);
+      expect(result.data.ratingAccuracy).toBe(4);
+      expect(result.data.ratingValue).toBe(1);
+    }
+  });
 });
 
 describe("Validation Schemas — Messages", () => {

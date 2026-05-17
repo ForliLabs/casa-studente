@@ -45,11 +45,12 @@ const badgeLabels = {
   gold: "🥇 Gold",
 };
 
-function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "lg" }) {
+function StarRating({ rating, label, size = "sm" }: { rating: number; label?: string; size?: "sm" | "lg" }) {
+  const defaultLabel = `${rating} su 5 stelle`;
   return (
     <div
       role="img"
-      aria-label={`${rating} su 5 stelle`}
+      aria-label={label ?? defaultLabel}
       className={cn("flex gap-0.5", size === "lg" ? "text-lg" : "text-sm")}
     >
       {[1, 2, 3, 4, 5].map((star) => (
@@ -135,7 +136,7 @@ export function ReviewList({ reviews, trustScores }: ReviewListProps) {
                 <div key={cat.label} className="rounded-xl bg-gray-50 p-2 text-center">
                   <p className="text-xs text-gray-500">{cat.label}</p>
                   <div className="mt-1 flex justify-center">
-                    <StarRating rating={cat.value} />
+                    <StarRating rating={cat.value} label={`${cat.label}: ${cat.value} su 5`} />
                   </div>
                 </div>
               ))}
