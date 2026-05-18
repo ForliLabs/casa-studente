@@ -52,6 +52,7 @@ export default async function DashboardMessagesPage({
 
       <MessagesView
         currentUserId={user.id}
+        currentUserName={user.name}
         initialSelectedId={requestedConversation}
         conversations={sortedConversations}
         messagesByConversation={messagesByConversation}

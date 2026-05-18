@@ -42,13 +42,17 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
     notFound();
   }
 
-  const [listingReviews, landlordReviews, landlordAccount, currentUser, favoriteIds] = await Promise.all([
+  // Resolve landlord account first so we can filter reviews by the stable revieweeId,
+  // not the mutable display name which can be changed independently.
+  const [listingReviews, landlordAccount, currentUser, favoriteIds] = await Promise.all([
     reviewStore.filter((review) => review.listingId === id),
-    reviewStore.filter((review) => review.revieweeName === listing.landlord.name),
     userStore.filter((candidate) => candidate.email === listing.landlord.email).then((users) => users[0] ?? null),
     getCurrentUser(),
     getFavoriteListingIds(),
   ]);
+  const landlordReviews = landlordAccount
+    ? await reviewStore.filter((review) => review.revieweeId === landlordAccount.id)
+    : [];
   const [virtualTour360, landlordAvailability] = await Promise.all([
     getVirtualTour360(listing.id),
     landlordAccount ? getLandlordAvailability(landlordAccount.id) : Promise.resolve([]),
@@ -269,6 +273,8 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
               landlordEmail={listing.landlord.email}
               landlordId={landlordAccount?.id}
               isLoggedIn={!!currentUser}
+              userName={currentUser?.name}
+              userEmail={currentUser?.email}
             />
 
             {landlordAccount && (

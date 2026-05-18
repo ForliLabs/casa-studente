@@ -2,6 +2,7 @@
 
 import { useTransition, useOptimistic } from "react";
 import { toggleFavoriteAction } from "@/lib/actions/favorites";
+import { useToast } from "@/components/toast";
 import { cn } from "@/lib/utils";
 
 interface FavoriteButtonProps {
@@ -20,6 +21,7 @@ export function FavoriteButton({
 }: FavoriteButtonProps) {
   const [isPending, startTransition] = useTransition();
   const [optimisticFavorited, setOptimisticFavorited] = useOptimistic(isFavorited);
+  const { showToast } = useToast();
 
   function handleToggle() {
     if (isPending) return;
@@ -27,8 +29,14 @@ export function FavoriteButton({
     formData.set("listingId", listingId);
 
     startTransition(async () => {
+      // Apply the optimistic update; useOptimistic reverts automatically when
+      // the transition completes if the server state has not changed.
       setOptimisticFavorited(!optimisticFavorited);
-      await toggleFavoriteAction(formData);
+      const result = await toggleFavoriteAction(formData);
+      // On error the optimistic value rolls back to the real isFavorited prop.
+      if (result && "error" in result) {
+        showToast(result.error, "error");
+      }
     });
   }
 

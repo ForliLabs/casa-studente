@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { submitReviewAction } from "@/lib/actions/reviews";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/utils";
@@ -32,10 +32,36 @@ function StarInput({
   value: number;
   onChange: (v: number) => void;
 }) {
+  const groupRef = useRef<HTMLDivElement>(null);
+
+  /** Move focus programmatically to the star button at the given 1-based index. */
+  function focusStar(index: number) {
+    const buttons = groupRef.current?.querySelectorAll<HTMLButtonElement>('[role="radio"]');
+    buttons?.[index - 1]?.focus();
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent, star: number) {
+    if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+      e.preventDefault();
+      const next = Math.max(1, star - 1);
+      onChange(next);
+      focusStar(next);
+    } else if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const next = Math.min(5, star + 1);
+      onChange(next);
+      focusStar(next);
+    }
+  }
+
+  // Roving tabindex: only the currently selected star (or star 1 when nothing
+  // is selected) participates in the tab order; arrow keys handle the rest.
+  const activeTab = value || 1;
+
   return (
     <fieldset className="space-y-1">
       <legend className="text-sm font-medium text-gray-700">{label}</legend>
-      <div className="flex gap-1" role="radiogroup" aria-label={label}>
+      <div ref={groupRef} className="flex gap-1" role="radiogroup" aria-label={label}>
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             key={star}
@@ -43,7 +69,9 @@ function StarInput({
             role="radio"
             aria-checked={star === value}
             aria-label={`${star} ${star === 1 ? "stella" : "stelle"}`}
+            tabIndex={star === activeTab ? 0 : -1}
             onClick={() => onChange(star)}
+            onKeyDown={(e) => handleKeyDown(e, star)}
             className={cn(
               "rounded-md p-1 text-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-500",
               star <= value ? "text-amber-500" : "text-gray-300 hover:text-amber-300"

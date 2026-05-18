@@ -42,13 +42,21 @@ export default async function DashboardPage() {
       {!isLandlord && (
         <section aria-labelledby="student-actions-heading">
           <h2 id="student-actions-heading" className="sr-only">Azioni rapide per studenti</h2>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <Link
               href="/listings"
               className="flex items-center gap-4 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
             >
               <span className="text-2xl" aria-hidden="true">🔍</span>
               <span>Cerca un alloggio</span>
+            </Link>
+            {/* Per Te — personalised recommendations entry point */}
+            <Link
+              href="/dashboard/for-you"
+              className="flex items-center gap-4 rounded-2xl border border-purple-200 bg-purple-50 px-5 py-4 text-sm font-semibold text-purple-700 transition hover:bg-purple-100"
+            >
+              <span className="text-2xl" aria-hidden="true">✨</span>
+              <span>Annunci per te</span>
             </Link>
             <Link
               href="/dashboard/messages"

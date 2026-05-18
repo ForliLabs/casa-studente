@@ -82,7 +82,7 @@ export async function createListingAction(_prevState: unknown, formData: FormDat
     availableFrom: data.availableFrom || "Da concordare",
     status: data.status || "Disponibile",
     verified: user.verified,
-    virtualTour: photos.length > 2,
+    virtualTour: formData.get("virtualTour") === "true",
     securePayments: true,
     furnished: true,
     photos: photos.length > 0 ? photos : ["Foto principale", "Altra vista"],

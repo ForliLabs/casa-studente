@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useOptimistic, startTransition } from "react";
 import { EmptyState } from "@/components/feedback";
 import { sendMessageAction, markConversationReadAction } from "@/lib/actions/messages";
 
@@ -25,6 +25,7 @@ interface Message {
 
 interface MessagesViewProps {
   currentUserId: string;
+  currentUserName: string;
   initialSelectedId?: string;
   conversations: Conversation[];
   messagesByConversation: Record<string, Message[]>;
@@ -32,6 +33,7 @@ interface MessagesViewProps {
 
 export function MessagesView({
   currentUserId,
+  currentUserName,
   initialSelectedId,
   conversations,
   messagesByConversation,
@@ -55,12 +57,33 @@ export function MessagesView({
   // `conversations` or `initialConversationId` changes reference.
   const didMarkInitialRead = useRef(false);
 
+  // Controlled input so we can clear it immediately after optimistic send.
+  const [inputValue, setInputValue] = useState("");
+  // Inline send-error state — holds the last failed draft so the user can retry.
+  const [sendError, setSendError] = useState<string | null>(null);
+
+  // Scroll anchor — keeps the message list pinned to the bottom.
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const selectedConversation = conversations.find((conversation) => conversation.id === selectedId);
   const selectedMessages = messagesByConversation[selectedId] || [];
+
+  // Optimistic messages for the currently selected conversation.
+  const [optimisticMessages, addOptimisticMessage] = useOptimistic(
+    selectedMessages,
+    (state: Message[], newMsg: Message) => [...state, newMsg]
+  );
+
+  // Scroll to bottom whenever the visible messages change (new message or conversation switch).
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [optimisticMessages]);
 
   function selectConversation(id: string) {
     setSelectedId(id);
     setShowMobileList(false); // switch to message pane on mobile
+    setInputValue(""); // clear any draft when switching threads
+    setSendError(null); // clear any prior send error
 
     // Optimistically clear the unread badge and persist to the server.
     const conversation = conversations.find((c) => c.id === id);
@@ -85,6 +108,42 @@ export function MessagesView({
       markConversationReadAction(fd);
     }
   }, [conversations, initialConversationId]);
+
+  /** Send handler: clears the input immediately, adds an optimistic bubble, then
+   *  fires the server action.  On failure the draft is restored and an inline
+   *  error is shown so the user can retry without losing their text. */
+  function handleSend(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const content = inputValue.trim();
+    if (!content) return;
+
+    // Build the FormData before clearing the input so the action receives it.
+    const fd = new FormData();
+    fd.set("conversationId", selectedId);
+    fd.set("content", content);
+
+    // Clear any previous error and the input for a snappy feel.
+    setSendError(null);
+    setInputValue("");
+
+    startTransition(async () => {
+      addOptimisticMessage({
+        id: `opt-${Date.now()}`,
+        conversationId: selectedId,
+        senderId: currentUserId,
+        senderName: currentUserName,
+        content,
+        read: false,
+        createdAt: new Date().toISOString(),
+      });
+      const result = await sendMessageAction(fd);
+      if (result?.error) {
+        // Restore the draft so the user can retry.
+        setInputValue(content);
+        setSendError(result.error);
+      }
+    });
+  }
 
   if (conversations.length === 0) {
     return (
@@ -195,44 +254,73 @@ export function MessagesView({
             </div>
 
             <div className="max-h-[55vh] space-y-4 overflow-y-auto py-6">
-              {selectedMessages.map((message, index) => {
+              {optimisticMessages.map((message, index) => {
                 const isOwnMessage = message.senderId === currentUserId;
+                // Optimistic messages have a temporary ID prefix.
+                const isOptimistic = message.id.startsWith("opt-");
                 return (
                   <div key={message.id}>
-                    {(index === 0 || selectedMessages[index - 1].senderName !== message.senderName) && (
+                    {(index === 0 || optimisticMessages[index - 1].senderName !== message.senderName) && (
                       <p className={`mb-1 text-xs text-gray-400 ${isOwnMessage ? "text-right" : ""}`}>
                         {message.senderName}
                       </p>
                     )}
                     <div
-                      className={`max-w-xl rounded-3xl px-5 py-4 text-sm leading-6 ${
+                      className={`max-w-xl rounded-3xl px-5 py-4 text-sm leading-6 transition-opacity ${
                         isOwnMessage
                           ? "ml-auto bg-blue-600 text-white"
                           : "bg-gray-100 text-gray-700"
-                      }`}
+                      } ${isOptimistic ? "opacity-70" : "opacity-100"}`}
                     >
                       {message.content}
                     </div>
                     <p className={`mt-1 text-xs text-gray-300 ${isOwnMessage ? "text-right" : ""}`}>
                       {new Date(message.createdAt).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
                       {message.read && isOwnMessage && " ✓✓"}
+                      {isOptimistic && isOwnMessage && " ·"}
                     </p>
                   </div>
                 );
               })}
+              {/* Invisible anchor that we scroll into view on new messages. */}
+              <div ref={messagesEndRef} aria-hidden="true" />
             </div>
 
-            <form action={sendMessageAction} className="flex flex-col gap-3 sm:flex-row">
+            {sendError && (
+              <div
+                role="alert"
+                className="flex items-start justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                <span>{sendError}</span>
+                <button
+                  type="button"
+                  onClick={() => setSendError(null)}
+                  aria-label="Chiudi errore"
+                  className="shrink-0 text-red-400 hover:text-red-600"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            <form onSubmit={handleSend} className="flex flex-col gap-3 sm:flex-row">
               <input type="hidden" name="conversationId" value={selectedId} />
+              <label htmlFor="message-compose-input" className="sr-only">
+                Scrivi un messaggio
+              </label>
               <input
+                id="message-compose-input"
                 name="content"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
                 required
                 className="flex-1 rounded-2xl border border-gray-300 px-5 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
                 placeholder="Scrivi un messaggio..."
               />
               <button
                 type="submit"
-                className="rounded-2xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+                disabled={!inputValue.trim()}
+                className="rounded-2xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
               >
                 Invia
               </button>

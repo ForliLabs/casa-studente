@@ -13,6 +13,10 @@ interface ContactFormProps {
   landlordId?: string;
   /** When false an auth gate is shown instead of the form. */
   isLoggedIn?: boolean;
+  /** Logged-in user's display name — hides the name/email/phone identity fields. */
+  userName?: string;
+  /** Logged-in user's email — hides the name/email/phone identity fields. */
+  userEmail?: string;
 }
 
 export function ContactForm({
@@ -22,6 +26,8 @@ export function ContactForm({
   landlordEmail,
   landlordId,
   isLoggedIn = true,
+  userName,
+  userEmail,
 }: ContactFormProps) {
   const [state, formAction, isPending] = useActionState(contactLandlordAction, null);
   const { showToast } = useToast();
@@ -31,6 +37,9 @@ export function ContactForm({
     if (state.error) showToast(state.error, "error");
     if (state.success && state.message) showToast(state.message, "success");
   }, [showToast, state]);
+
+  // When logged in and we have the user's identity, skip the identity fields.
+  const isAccountAware = isLoggedIn && !!userName && !!userEmail;
 
   return (
     <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -66,36 +75,65 @@ export function ContactForm({
           <input type="hidden" name="recipientEmail" value={landlordEmail} />
           {landlordId && <input type="hidden" name="recipientId" value={landlordId} />}
 
-          <label className="block">
-            <span className="text-sm font-medium text-gray-700">Nome e cognome</span>
-            <input
-              name="name"
-              required
-              autoComplete="name"
-              className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
-              placeholder="Es. Giulia Bianchi"
-            />
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium text-gray-700">Email</span>
-            <input
-              name="email"
-              required
-              type="email"
-              autoComplete="email"
-              className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
-              placeholder="nome@universita.it"
-            />
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium text-gray-700">Telefono (opzionale)</span>
-            <input
-              name="phone"
-              autoComplete="tel"
-              className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
-              placeholder="+39 333 1234567"
-            />
-          </label>
+          {isAccountAware ? (
+            <>
+              {/* Pass identity as hidden fields — the server action reads them from session,
+                  but the schema still validates them, so we supply them as a fallback. */}
+              <input type="hidden" name="name" value={userName} />
+              <input type="hidden" name="email" value={userEmail} />
+
+              {/* Account-aware identity badge */}
+              <div className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white" aria-hidden="true">
+                  {userName.charAt(0).toUpperCase()}
+                </span>
+                <div className="min-w-0 text-sm">
+                  <p className="font-semibold text-blue-900 truncate">{userName}</p>
+                  <p className="text-blue-700 truncate">{userEmail}</p>
+                </div>
+                <Link
+                  href="/dashboard"
+                  className="ml-auto shrink-0 text-xs font-medium text-blue-600 underline underline-offset-2 hover:text-blue-800"
+                >
+                  Profilo
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">Nome e cognome</span>
+                <input
+                  name="name"
+                  required
+                  autoComplete="name"
+                  className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
+                  placeholder="Es. Giulia Bianchi"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">Email</span>
+                <input
+                  name="email"
+                  required
+                  type="email"
+                  autoComplete="email"
+                  className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
+                  placeholder="nome@universita.it"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">Telefono (opzionale)</span>
+                <input
+                  name="phone"
+                  autoComplete="tel"
+                  className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
+                  placeholder="+39 333 1234567"
+                />
+              </label>
+            </>
+          )}
+
           <label className="block">
             <span className="text-sm font-medium text-gray-700">Messaggio</span>
             <textarea

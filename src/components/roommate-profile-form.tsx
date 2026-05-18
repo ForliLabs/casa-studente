@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { upsertRoommateProfileAction } from "@/lib/actions/roommates";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/utils";
@@ -40,17 +40,53 @@ const socialOptions = [
 export function RoommateProfileForm({ existingProfile }: RoommateProfileFormProps) {
   const [state, formAction, isPending] = useActionState(upsertRoommateProfileAction, null);
   const { showToast } = useToast();
+  // When the user intentionally dismisses the success panel to make edits again.
+  const [editingAfterSuccess, setEditingAfterSuccess] = useState(false);
 
   useEffect(() => {
     if (!state) return;
     if (state.error) showToast(state.error, "error");
-    if (state.success) {
-      showToast(
-        state.isUpdate ? "Profilo aggiornato con successo!" : "Profilo creato con successo!",
-        "success"
-      );
-    }
+    // Success is communicated via the dedicated success panel; no toast needed.
   }, [showToast, state]);
+
+  // Show a clear success panel after a successful save, unless the user chose to
+  // go back to editing. This prevents accidental re-submission.
+  if (state?.success && !editingAfterSuccess) {
+    return (
+      <div
+        className="rounded-3xl border border-emerald-200 bg-emerald-50 p-8 shadow-sm"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="text-center">
+          <span className="text-4xl" aria-hidden="true">✓</span>
+          <p className="mt-4 text-xl font-semibold text-emerald-800">
+            {state.isUpdate ? "Profilo aggiornato!" : "Profilo creato con successo!"}
+          </p>
+          <p className="mt-2 text-sm text-emerald-700">
+            {state.isUpdate
+              ? "Le tue preferenze sono state salvate. I match vengono ricalcolati automaticamente."
+              : "Il tuo profilo è ora visibile agli altri studenti. Puoi modificarlo in qualsiasi momento."}
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <a
+              href="/roommates"
+              className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+            >
+              Scopri i coinquilini
+            </a>
+            <button
+              type="button"
+              onClick={() => setEditingAfterSuccess(true)}
+              className="rounded-xl border border-emerald-300 bg-white px-5 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50"
+            >
+              Modifica ancora
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const defaults = existingProfile ?? {
     studyProgram: "",
@@ -76,12 +112,6 @@ export function RoommateProfileForm({ existingProfile }: RoommateProfileFormProp
           ? "Aggiorna le tue preferenze per migliorare i match."
           : "Completa il profilo per trovare coinquilini compatibili e ottenere punteggi personalizzati."}
       </p>
-
-      {state?.success && (
-        <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700" role="alert">
-          {state.isUpdate ? "Profilo aggiornato con successo!" : "Profilo creato con successo!"}
-        </div>
-      )}
 
       <form action={formAction} className="mt-6 space-y-6">
         <label className="block">

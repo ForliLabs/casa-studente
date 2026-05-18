@@ -113,10 +113,12 @@ async function upsertConversation({
   return { conversationId, message };
 }
 
-export async function sendMessageAction(formData: FormData): Promise<void> {
+export async function sendMessageAction(
+  formData: FormData
+): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) {
-    return;
+    return { error: "Devi accedere per inviare messaggi" };
   }
 
   const raw = {
@@ -126,28 +128,33 @@ export async function sendMessageAction(formData: FormData): Promise<void> {
 
   const parsed = sendMessageSchema.safeParse(raw);
   if (!parsed.success) {
-    return;
+    return { error: parsed.error.errors[0]?.message ?? "Messaggio non valido" };
   }
 
   const conversation = await conversationStore.findById(parsed.data.conversationId);
   if (!conversation || !conversation.participantIds.includes(user.id)) {
-    return;
+    return { error: "Conversazione non disponibile" };
   }
 
-  await upsertConversation({
-    listingId: conversation.listingId,
-    listingTitle: conversation.listingTitle,
-    senderId: user.id,
-    senderName: user.name,
-    recipientId:
-      conversation.participantIds.find((participantId) => participantId !== user.id) ?? conversation.participantIds[0],
-    recipientName:
-      conversation.participantNames.find((participantName) => participantName !== user.name) ??
-      conversation.participantNames[0],
-    content: parsed.data.content,
-  });
+  try {
+    await upsertConversation({
+      listingId: conversation.listingId,
+      listingTitle: conversation.listingTitle,
+      senderId: user.id,
+      senderName: user.name,
+      recipientId:
+        conversation.participantIds.find((participantId) => participantId !== user.id) ?? conversation.participantIds[0],
+      recipientName:
+        conversation.participantNames.find((participantName) => participantName !== user.name) ??
+        conversation.participantNames[0],
+      content: parsed.data.content,
+    });
+  } catch {
+    return { error: "Invio fallito. Riprova tra qualche secondo." };
+  }
 
   revalidatePath("/dashboard/messages");
+  return {};
 }
 
 export async function startConversationAction(_prevState: unknown, formData: FormData) {

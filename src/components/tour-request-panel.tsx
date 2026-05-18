@@ -46,7 +46,8 @@ export function TourRequestPanel({
   useEffect(() => {
     if (!state) return;
     if (state.error) showToast(state.error, "error");
-    if (state.success) showToast("Tour richiesto con successo.", "success");
+    // Success is communicated via the inline confirmation panel below;
+    // showing a toast on top of it is redundant and distracting.
   }, [showToast, state]);
 
   const today = new Date().toISOString().slice(0, 10);
