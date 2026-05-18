@@ -12,6 +12,8 @@ interface ConfirmActionButtonProps {
   triggerLabel: React.ReactNode;
   /** Label shown on the confirm button inside the dialog. */
   confirmLabel?: string;
+  /** Label shown on the dismiss button inside the dialog. */
+  cancelLabel?: string;
   /** Optional title text for the dialog. */
   dialogTitle?: string;
   /** Body copy for the dialog. */
@@ -32,6 +34,7 @@ export function ConfirmActionButton({
   action,
   triggerLabel,
   confirmLabel = "Conferma",
+  cancelLabel = "No, mantieni",
   dialogTitle = "Sei sicuro?",
   dialogBody = "L'operazione non può essere annullata.",
   triggerClassName,
@@ -104,7 +107,7 @@ export function ConfirmActionButton({
             disabled={isPending}
             className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
           >
-            Annulla
+            {cancelLabel}
           </button>
           <button
             type="button"

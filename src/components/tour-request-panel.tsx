@@ -39,9 +39,11 @@ export function TourRequestPanel({
   const [state, formAction, isPending] = useActionState(requestTourAction, null);
   const { showToast } = useToast();
 
-  // Controlled date/time so availability chips can prefill them.
+  // Controlled date/time/type so availability chips can prefill and the
+  // success panel can confirm exactly what was requested.
   const [prefillDate, setPrefillDate] = useState("");
   const [prefillTime, setPrefillTime] = useState("");
+  const [prefillType, setPrefillType] = useState("virtual");
 
   useEffect(() => {
     if (!state) return;
@@ -51,6 +53,11 @@ export function TourRequestPanel({
   }, [showToast, state]);
 
   const today = new Date().toISOString().slice(0, 10);
+  const typeLabels: Record<string, string> = {
+    virtual: "Video tour guidato",
+    in_person: "Visita in presenza",
+    async_360: "Tour 360° asincrono",
+  };
 
   function applySlot(slot: TourAvailability) {
     setPrefillDate(nextDateForDayOfWeek(slot.dayOfWeek));
@@ -108,7 +115,15 @@ export function TourRequestPanel({
         </div>
       ) : state?.success ? (
         <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
-          <p>Richiesta inviata. Troverai gli aggiornamenti nella dashboard tour.</p>
+          <p className="font-semibold text-emerald-900">Richiesta inviata!</p>
+          {(prefillDate || prefillTime) && (
+            <p className="mt-1">
+              {typeLabels[prefillType] ?? "Tour"}
+              {prefillDate && ` · ${new Date(`${prefillDate}T00:00:00`).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}`}
+              {prefillTime && ` alle ${prefillTime}`}
+            </p>
+          )}
+          <p className="mt-1 text-emerald-600">Troverai gli aggiornamenti nella dashboard tour.</p>
           <Link
             href="/dashboard/tours"
             className="mt-3 inline-flex rounded-xl bg-emerald-600 px-4 py-2 font-semibold text-white transition hover:bg-emerald-700"
@@ -127,8 +142,9 @@ export function TourRequestPanel({
             <span className="text-sm font-medium text-gray-700">Tipo di tour</span>
             <select
               name="type"
+              value={prefillType}
+              onChange={(e) => setPrefillType(e.target.value)}
               className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
-              defaultValue="virtual"
             >
               <option value="virtual">Video tour guidato</option>
               <option value="in_person">Visita in presenza</option>

@@ -277,7 +277,11 @@ export function MessagesView({
                     <p className={`mt-1 text-xs text-gray-300 ${isOwnMessage ? "text-right" : ""}`}>
                       {new Date(message.createdAt).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
                       {message.read && isOwnMessage && " ✓✓"}
-                      {isOptimistic && isOwnMessage && " ·"}
+                      {isOptimistic && isOwnMessage && (
+                        <span aria-label="Invio in corso" title="Invio in corso">
+                          {" ·⋯"}
+                        </span>
+                      )}
                     </p>
                   </div>
                 );
