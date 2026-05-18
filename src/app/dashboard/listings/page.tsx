@@ -11,18 +11,44 @@ export const metadata: Metadata = {
   description: "Gestisci stato, prezzo e richieste degli annunci pubblicati su CasaStudente.",
 };
 
-export default async function DashboardListingsPage() {
+export default async function DashboardListingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ created?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login");
   if (user.role !== "landlord" && user.role !== "admin") redirect("/dashboard");
 
-  const listings = (await listingStore.findAll()).filter(
-    (listing) => user.role === "admin" || listing.landlord.email === user.email,
-  );
-  const conversations = await conversationStore.findAll();
+  const [{ created } = {}, listings, conversations] = await Promise.all([
+    searchParams,
+    listingStore.findAll().then((all) =>
+      all.filter((listing) => user.role === "admin" || listing.landlord.email === user.email)
+    ),
+    conversationStore.findAll(),
+  ]);
 
   return (
     <div className="space-y-8">
+      {/* Success banner shown after a new listing is created */}
+      {created === "1" && (
+        <div className="flex items-start gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800 shadow-sm" role="alert">
+          <span className="text-xl" aria-hidden="true">✅</span>
+          <div>
+            <p className="font-semibold">Annuncio pubblicato con successo!</p>
+            <p className="mt-0.5 text-emerald-700">
+              Il tuo alloggio è ora visibile nel catalogo pubblico. Aggiorna disponibilità e foto quando necessario.
+            </p>
+          </div>
+          <Link
+            href="/listings"
+            className="ml-auto shrink-0 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
+          >
+            Vedi catalogo →
+          </Link>
+        </div>
+      )}
+
       <section className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>

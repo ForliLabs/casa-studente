@@ -11,6 +11,8 @@ interface ContactFormProps {
   landlordName: string;
   landlordEmail: string;
   landlordId?: string;
+  /** When false an auth gate is shown instead of the form. */
+  isLoggedIn?: boolean;
 }
 
 export function ContactForm({
@@ -19,6 +21,7 @@ export function ContactForm({
   landlordName,
   landlordEmail,
   landlordId,
+  isLoggedIn = true,
 }: ContactFormProps) {
   const [state, formAction, isPending] = useActionState(contactLandlordAction, null);
   const { showToast } = useToast();
@@ -36,7 +39,19 @@ export function ContactForm({
         Invia un messaggio a {landlordName} per ricevere dettagli su {listingTitle.toLowerCase()}.
       </p>
 
-      {state?.success ? (
+      {/* Auth gate — shown when the user is not logged in */}
+      {!isLoggedIn ? (
+        <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700">
+          <p className="font-medium">Accedi per inviare un messaggio al proprietario.</p>
+          <p className="mt-1 text-blue-600">I messaggi sono collegati al tuo profilo studente per garantire risposte più rapide.</p>
+          <Link
+            href={`/auth/login?redirect=${encodeURIComponent(`/listings/${listingId}`)}`}
+            className="mt-3 inline-flex rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700"
+          >
+            Accedi per contattare
+          </Link>
+        </div>
+      ) : state?.success ? (
         <div className="mt-6 space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700" role="alert">
           <p>{state.message}</p>
           <Link href="/dashboard/messages" className="inline-flex rounded-xl bg-emerald-600 px-4 py-2 font-semibold text-white transition hover:bg-emerald-700">

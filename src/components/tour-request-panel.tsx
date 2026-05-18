@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { requestTourAction } from "@/lib/actions/tours";
 import { useToast } from "@/components/toast";
 import { describeAvailability } from "@/lib/tour-workflow";
@@ -16,6 +16,18 @@ interface TourRequestPanelProps {
   isLoggedIn: boolean;
 }
 
+/**
+ * Returns the ISO date string (YYYY-MM-DD) of the next occurrence of the given
+ * day of week (0=Sunday … 6=Saturday), always at least 1 day in the future.
+ */
+function nextDateForDayOfWeek(dayOfWeek: number): string {
+  const today = new Date();
+  const diff = ((dayOfWeek - today.getDay() + 7) % 7) || 7; // never today
+  const next = new Date(today);
+  next.setDate(today.getDate() + diff);
+  return next.toISOString().slice(0, 10);
+}
+
 export function TourRequestPanel({
   listingId,
   listingTitle,
@@ -27,6 +39,10 @@ export function TourRequestPanel({
   const [state, formAction, isPending] = useActionState(requestTourAction, null);
   const { showToast } = useToast();
 
+  // Controlled date/time so availability chips can prefill them.
+  const [prefillDate, setPrefillDate] = useState("");
+  const [prefillTime, setPrefillTime] = useState("");
+
   useEffect(() => {
     if (!state) return;
     if (state.error) showToast(state.error, "error");
@@ -34,6 +50,11 @@ export function TourRequestPanel({
   }, [showToast, state]);
 
   const today = new Date().toISOString().slice(0, 10);
+
+  function applySlot(slot: TourAvailability) {
+    setPrefillDate(nextDateForDayOfWeek(slot.dayOfWeek));
+    setPrefillTime(slot.startTime);
+  }
 
   return (
     <div id="tour-request" className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -43,12 +64,34 @@ export function TourRequestPanel({
       </p>
 
       {availability.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {availability.map((slot) => (
-            <span key={slot.id} className="rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
-              {describeAvailability(slot)}
-            </span>
-          ))}
+        <div className="mt-4">
+          <p className="text-xs font-medium text-gray-500">
+            {isLoggedIn ? "Clicca su uno slot per precompilare data e orario:" : "Disponibilità dichiarata:"}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {availability.map((slot) => (
+              isLoggedIn ? (
+                <button
+                  key={slot.id}
+                  type="button"
+                  onClick={() => applySlot(slot)}
+                  title="Clicca per precompilare data e orario"
+                  className={[
+                    "rounded-full border px-3 py-1 text-xs font-medium transition",
+                    prefillDate === nextDateForDayOfWeek(slot.dayOfWeek) && prefillTime === slot.startTime
+                      ? "border-sky-500 bg-sky-500 text-white"
+                      : "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100",
+                  ].join(" ")}
+                >
+                  {describeAvailability(slot)}
+                </button>
+              ) : (
+                <span key={slot.id} className="rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
+                  {describeAvailability(slot)}
+                </span>
+              )
+            ))}
+          </div>
         </div>
       )}
 
@@ -100,6 +143,8 @@ export function TourRequestPanel({
                 name="date"
                 min={today}
                 required
+                value={prefillDate}
+                onChange={(e) => setPrefillDate(e.target.value)}
                 className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
               />
             </label>
@@ -109,6 +154,8 @@ export function TourRequestPanel({
                 type="time"
                 name="time"
                 required
+                value={prefillTime}
+                onChange={(e) => setPrefillTime(e.target.value)}
                 className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
               />
             </label>

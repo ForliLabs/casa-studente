@@ -25,6 +25,34 @@ body {
   color: var(--foreground);
 }
 
+/* ── Keyboard focus ring ─────────────────────────────────────────────────── *
+ * Show a clear ring only when focus was reached by keyboard/sequential nav.  *
+ * Suppress noisy pointer-focus outlines without touching Tailwind's          *
+ * transparent `outline-none` helper (which already hides native browser      *
+ * outlines while keeping the slot available for :focus-visible overrides).   *
+ * -------------------------------------------------------------------------- */
+
+/* Pointer / touch focus: make sure no default outline leaks through */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Keyboard focus ring — applied via :focus-visible so pointer clicks are    *
+ * never affected. The !important ensures it wins over Tailwind's inline       *
+ * `outline-none` (which sets `outline: 2px solid transparent`).              */
+*:focus-visible {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px;
+}
+
+/* Inputs/selects/textareas get a slightly tighter offset since they already
+   carry a visible border — the ring sits flush just outside it.              */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline-offset: 1px;
+}
+
 /* Skip-to-content link — visible only on keyboard focus */
 .skip-to-content {
   position: absolute;

@@ -104,7 +104,7 @@ export async function createListingAction(_prevState: unknown, formData: FormDat
   revalidatePath("/listings");
   revalidatePath(`/listings/${listing.id}`);
   revalidatePath("/dashboard/listings");
-  redirect("/dashboard/listings");
+  redirect("/dashboard/listings?created=1");
 }
 
 export async function updateListingAction(formData: FormData) {

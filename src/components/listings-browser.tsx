@@ -14,7 +14,7 @@ import {
   sortListings,
   type ListingSortOption,
 } from "@/lib/listings-search";
-import { cn } from "@/lib/utils";
+import { cn, formatAvailableFrom } from "@/lib/utils";
 import type { Listing, ListingType } from "@/lib/data";
 
 interface ListingsBrowserProps {
@@ -47,6 +47,8 @@ export function ListingsBrowser({ listings, favoriteIds = [] }: ListingsBrowserP
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [viewMode, setViewMode] = useState<"cozy" | "compact">("cozy");
+  // Mobile filter panel is collapsed by default; auto-opens when filters are active.
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const currentParams = useMemo(() => new URLSearchParams(searchParams.toString()), [searchParams]);
   const { sort, ...filters } = useMemo(
     () => parseListingFiltersFromSearchParams(new URLSearchParams(searchParams.toString())),
@@ -274,44 +276,77 @@ export function ListingsBrowser({ listings, favoriteIds = [] }: ListingsBrowserP
           </div>
         </div>
 
-        <div className="mt-6 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm lg:hidden">
-          <FilterControls
-            key={[
-              "mobile",
-              filters.zone ?? "",
-              filters.minPrice ?? "",
-              filters.maxPrice ?? "",
-              filters.type ?? "tutti",
-              filters.verifiedOnly ? 1 : 0,
-              filters.virtualTourOnly ? 1 : 0,
-              filters.utilitiesIncluded ? 1 : 0,
-              filters.furnishedOnly ? 1 : 0,
-              filters.securePaymentsOnly ? 1 : 0,
-              sort,
-            ].join(":")}
-            zone={filters.zone ?? ""}
-            minPrice={filters.minPrice ? String(filters.minPrice) : ""}
-            maxPrice={filters.maxPrice ? String(filters.maxPrice) : ""}
-            type={filters.type ?? "tutti"}
-            verifiedOnly={Boolean(filters.verifiedOnly)}
-            virtualTourOnly={Boolean(filters.virtualTourOnly)}
-            utilitiesIncluded={Boolean(filters.utilitiesIncluded)}
-            furnishedOnly={Boolean(filters.furnishedOnly)}
-            securePaymentsOnly={Boolean(filters.securePaymentsOnly)}
-            sort={sort}
-            onZoneChange={(value) => updateTextParam("zone", value)}
-            onMinPriceChange={(value) => updateTextParam("minPrice", value)}
-            onMaxPriceChange={(value) => updateTextParam("maxPrice", value)}
-            onTypeChange={(value) => updateTextParam("type", value === "tutti" ? "" : value)}
-            onVerifiedOnlyChange={(value) => updateBooleanParam("verified", value)}
-            onVirtualTourOnlyChange={(value) => updateBooleanParam("virtualTour", value)}
-            onUtilitiesIncludedChange={(value) => updateBooleanParam("utilities", value)}
-            onFurnishedOnlyChange={(value) => updateBooleanParam("furnished", value)}
-            onSecurePaymentsOnlyChange={(value) => updateBooleanParam("secure", value)}
-            onSortChange={updateSort}
-            onReset={resetFilters}
-            compact
-          />
+        {/* Mobile filter panel — collapsed by default, toggled by button */}
+        <div className="mt-6 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileFiltersOpen((prev) => !prev)}
+            aria-expanded={mobileFiltersOpen}
+            aria-controls="mobile-filter-panel"
+            className="flex w-full items-center justify-between rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+          >
+            <span className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-gray-500" aria-hidden="true">
+                <path fillRule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.66 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clipRule="evenodd" />
+              </svg>
+              Filtri
+              {chips.length > 0 && (
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 text-xs font-bold text-white">
+                  {chips.length}
+                </span>
+              )}
+            </span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className={cn("h-4 w-4 text-gray-400 transition-transform", mobileFiltersOpen && "rotate-180")}
+              aria-hidden="true"
+            >
+              <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+            </svg>
+          </button>
+
+          {/* Always render so aria-controls points at a valid element; hide via the HTML `hidden` attribute */}
+          <div id="mobile-filter-panel" hidden={!mobileFiltersOpen} className="mt-3 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+              <FilterControls
+                key={[
+                  "mobile",
+                  filters.zone ?? "",
+                  filters.minPrice ?? "",
+                  filters.maxPrice ?? "",
+                  filters.type ?? "tutti",
+                  filters.verifiedOnly ? 1 : 0,
+                  filters.virtualTourOnly ? 1 : 0,
+                  filters.utilitiesIncluded ? 1 : 0,
+                  filters.furnishedOnly ? 1 : 0,
+                  filters.securePaymentsOnly ? 1 : 0,
+                  sort,
+                ].join(":")}
+                zone={filters.zone ?? ""}
+                minPrice={filters.minPrice ? String(filters.minPrice) : ""}
+                maxPrice={filters.maxPrice ? String(filters.maxPrice) : ""}
+                type={filters.type ?? "tutti"}
+                verifiedOnly={Boolean(filters.verifiedOnly)}
+                virtualTourOnly={Boolean(filters.virtualTourOnly)}
+                utilitiesIncluded={Boolean(filters.utilitiesIncluded)}
+                furnishedOnly={Boolean(filters.furnishedOnly)}
+                securePaymentsOnly={Boolean(filters.securePaymentsOnly)}
+                sort={sort}
+                onZoneChange={(value) => updateTextParam("zone", value)}
+                onMinPriceChange={(value) => updateTextParam("minPrice", value)}
+                onMaxPriceChange={(value) => updateTextParam("maxPrice", value)}
+                onTypeChange={(value) => updateTextParam("type", value === "tutti" ? "" : value)}
+                onVerifiedOnlyChange={(value) => updateBooleanParam("verified", value)}
+                onVirtualTourOnlyChange={(value) => updateBooleanParam("virtualTour", value)}
+                onUtilitiesIncludedChange={(value) => updateBooleanParam("utilities", value)}
+                onFurnishedOnlyChange={(value) => updateBooleanParam("furnished", value)}
+                onSecurePaymentsOnlyChange={(value) => updateBooleanParam("secure", value)}
+                onSortChange={updateSort}
+                onReset={resetFilters}
+                compact
+              />
+            </div>
         </div>
 
         {recommendedListings.length > 0 && hasActiveFilters && (
@@ -452,20 +487,33 @@ export function ListingsBrowser({ listings, favoriteIds = [] }: ListingsBrowserP
               viewMode === "cozy" ? "md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1 xl:grid-cols-2"
             )}
           >
-            {filteredListings.map((listing) => (
+            {filteredListings.map((listing) => {
+              const isUnavailable = listing.status !== "Disponibile";
+              return (
               <article
                 key={listing.id}
                 className={cn(
-                  "overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm transition motion-reduce:transform-none",
+                  "overflow-hidden rounded-3xl border bg-white shadow-sm transition motion-reduce:transform-none",
+                  isUnavailable ? "border-amber-200" : "border-gray-200",
                   viewMode === "cozy" ? "hover:-translate-y-1 hover:shadow-lg" : "hover:shadow-md"
                 )}
               >
+                {/* Card header — faded gradient for unavailable listings */}
                 <div
                   className={cn(
-                    "flex items-end bg-gradient-to-br from-blue-500 via-sky-500 to-indigo-600 p-5 text-white",
+                    "relative flex items-end p-5 text-white",
+                    isUnavailable
+                      ? "bg-gradient-to-br from-gray-400 via-gray-500 to-gray-600"
+                      : "bg-gradient-to-br from-blue-500 via-sky-500 to-indigo-600",
                     viewMode === "cozy" ? "h-48" : "h-36"
                   )}
                 >
+                  {/* Availability status badge — shown prominently on unavailable cards */}
+                  {isUnavailable && (
+                    <span className="absolute right-4 top-4 rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-amber-900 shadow">
+                      In trattativa
+                    </span>
+                  )}
                   <div className="w-full">
                     <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-blue-100">
                       <span>{listing.zone}</span>
@@ -479,7 +527,7 @@ export function ListingsBrowser({ listings, favoriteIds = [] }: ListingsBrowserP
                 <div className="p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">€{listing.price}</p>
+                      <p className={cn("text-2xl font-bold", isUnavailable ? "text-gray-500" : "text-gray-900")}>€{listing.price}</p>
                       <p className="text-sm text-gray-500">al mese</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -521,24 +569,31 @@ export function ListingsBrowser({ listings, favoriteIds = [] }: ListingsBrowserP
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">Disponibile da</p>
-                      <p>{listing.availableFrom}</p>
+                      <p>{formatAvailableFrom(listing.availableFrom)}</p>
                     </div>
                   </div>
+
+                  {isUnavailable && (
+                    <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                      Questo annuncio è attualmente in trattativa — puoi comunque salvarlo nei preferiti.
+                    </p>
+                  )}
 
                   <Link
                     href={`/listings/${listing.id}`}
                     className={cn(
-                      "mt-6 block rounded-xl px-4 py-3 text-center text-sm font-semibold transition",
-                      listing.status === "Disponibile"
-                        ? "bg-blue-600 text-white hover:bg-blue-700"
-                        : "bg-gray-900 text-white hover:bg-gray-800"
+                      "mt-4 block rounded-xl px-4 py-3 text-center text-sm font-semibold transition",
+                      isUnavailable
+                        ? "border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                        : "bg-blue-600 text-white hover:bg-blue-700"
                     )}
                   >
-                    {listing.status === "Disponibile" ? "Vedi dettaglio" : "Apri annuncio"}
+                    {isUnavailable ? "Apri scheda" : "Vedi dettaglio"}
                   </Link>
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

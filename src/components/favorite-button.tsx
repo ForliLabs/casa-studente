@@ -46,7 +46,7 @@ export function FavoriteButton({
       className={cn(
         "inline-flex items-center justify-center rounded-full transition",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-        size === "sm" ? "h-9 w-9 min-h-[44px] min-w-[44px]" : "h-11 w-11",
+        size === "sm" ? "min-h-[44px] min-w-[44px]" : "h-11 w-11",
         optimisticFavorited
           ? "bg-red-50 text-red-500 hover:bg-red-100"
           : "bg-white/80 text-gray-400 hover:bg-white hover:text-red-400",

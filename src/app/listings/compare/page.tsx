@@ -148,8 +148,13 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
                   {listings.map((_, i) => {
                     const val = field.render(i);
                     const isLowest = field.label === "Canone" || field.label === "Costo totale stimato";
-                    const values = listings.map((__, j) => field.render(j));
-                    const highlight = isLowest && val === values.sort()[0];
+                    // Extract numeric value by stripping all non-digit/decimal characters, then
+                    // compare numerically so "€350" sorts below "€40" (lexicographic would give wrong result).
+                    const extractNum = (s: string) => parseFloat(s.replace(/[^0-9.]/g, "")) || 0;
+                    const highlight =
+                      isLowest &&
+                      extractNum(val) ===
+                        Math.min(...listings.map((__, j) => extractNum(field.render(j))));
                     return (
                       <td
                         key={listings[i].id}

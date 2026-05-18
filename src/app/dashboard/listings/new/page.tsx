@@ -192,9 +192,11 @@ export default function NewListingPage() {
               <span className="text-sm font-medium text-gray-700">Disponibile da</span>
               <input
                 name="availableFrom"
+                type="date"
+                min={new Date().toISOString().slice(0, 10)}
                 className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
-                placeholder="1 settembre 2026"
               />
+              <p className="mt-1 text-xs text-gray-400">Lascia vuoto se la data non è ancora definita.</p>
             </label>
 
             <label className="block md:col-span-2">

@@ -1,3 +1,4 @@
+import { formatAvailableFrom } from "@/lib/utils";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -113,7 +114,7 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
                 </div>
                 <div className="rounded-2xl bg-gray-50 p-4">
                   <p className="text-sm text-gray-500">Disponibilit&agrave;</p>
-                  <p className="mt-1 text-lg font-semibold text-gray-900">{listing.availableFrom}</p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">{formatAvailableFrom(listing.availableFrom)}</p>
                 </div>
               </div>
 
@@ -218,8 +219,8 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
+          {/* Sidebar — sticky on desktop so CTAs stay reachable while scrolling */}
+          <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
             <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
               <h2 className="text-xl font-semibold text-gray-900">Proprietario</h2>
               <div className="mt-5 rounded-2xl bg-gray-50 p-5">
@@ -267,6 +268,7 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
               landlordName={listing.landlord.name}
               landlordEmail={listing.landlord.email}
               landlordId={landlordAccount?.id}
+              isLoggedIn={!!currentUser}
             />
 
             {landlordAccount && (
@@ -280,23 +282,15 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
               />
             )}
 
+            {/* Sidebar quick actions — only genuinely conversion-relevant items */}
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900">Azioni rapide</h3>
               <div className="mt-4 space-y-3">
                 <ShareListingButton listingId={listing.id} listingTitle={listing.title} />
-                <Link href="/reviews" className="block rounded-xl border border-gray-200 px-4 py-3 text-center text-sm font-medium text-gray-700 transition hover:bg-gray-50">
-                  Vedi tutte le recensioni
-                </Link>
-                <Link href="/dashboard/payments" className="block rounded-xl border border-gray-200 px-4 py-3 text-center text-sm font-medium text-gray-700 transition hover:bg-gray-50">
-                  Gestisci pagamenti
-                </Link>
-                <Link href="/roommates" className="block rounded-xl border border-gray-200 px-4 py-3 text-center text-sm font-medium text-gray-700 transition hover:bg-gray-50">
-                  Cerca coinquilini
-                </Link>
                 {favoriteIds.length >= 2 && (
                   <Link
                     href={`/listings/compare?ids=${favoriteIds.slice(0, 4).join(",")}`}
-                    className="block rounded-xl bg-indigo-600 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-indigo-700"
+                    className="block rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-center text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
                   >
                     Confronta preferiti ({Math.min(favoriteIds.length, 4)})
                   </Link>
