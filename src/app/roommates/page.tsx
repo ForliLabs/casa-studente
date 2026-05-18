@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getCurrentUser, userStore } from "@/lib/auth";
 import { roommateStore, calculateCompatibility, type RoommateProfile } from "@/lib/stores";
 import { RoommateList } from "@/components/roommate-list";
@@ -44,6 +45,14 @@ export default async function RoommatesPage() {
             Scopri profili compatibili con il tuo stile di vita, budget e preferenze. Ogni card evidenzia
             perché il match potrebbe funzionare e ti permette di inviare un&apos;intro in un click.
           </p>
+          {user && (
+            <Link
+              href="/roommates/profile"
+              className="mt-4 inline-flex rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              {currentProfile ? "Modifica il tuo profilo" : "Crea il tuo profilo"}
+            </Link>
+          )}
         </div>
 
         <div className="mt-10 space-y-8">

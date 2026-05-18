@@ -53,7 +53,7 @@ export function RoommateList({ profiles, hasProfile, isLoggedIn }: RoommateListP
 
       {isLoggedIn && !hasProfile && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-          Completa il tuo profilo coinquilino per ottenere punteggi personalizzati e inviare intro più mirate. <Link href="/onboarding" className="font-medium underline">Completa onboarding</Link>.
+          Completa il tuo profilo coinquilino per ottenere punteggi personalizzati e inviare intro più mirate. <Link href="/roommates/profile" className="font-medium underline">Crea profilo</Link>.
         </div>
       )}
 
@@ -180,10 +180,10 @@ export function RoommateList({ profiles, hasProfile, isLoggedIn }: RoommateListP
                 />
               ) : (
                 <Link
-                  href="/onboarding"
+                  href="/roommates/profile"
                   className="mt-5 block w-full rounded-xl bg-gray-900 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-gray-800"
                 >
-                  Completa profilo per scrivere
+                  Crea profilo per scrivere
                 </Link>
               )}
             </div>
