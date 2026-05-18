@@ -171,7 +171,7 @@ export function ListingsBrowser({ listings, favoriteIds = [] }: ListingsBrowserP
       ? { label: "Pagamenti sicuri", onRemove: () => updateBooleanParam("secure", false) }
       : null,
     ...(filters.features ?? []).map((feature) => ({
-      label: `Feature: ${feature}`,
+      label: feature,
       onRemove: () => updateTextParam("features", (filters.features ?? []).filter((item) => item !== feature).join(",")),
     })),
   ].filter(Boolean) as Array<{ label: string; onRemove: () => void }>;
@@ -453,6 +453,7 @@ export function ListingsBrowser({ listings, favoriteIds = [] }: ListingsBrowserP
                 key={chip.label}
                 type="button"
                 onClick={chip.onRemove}
+                aria-label={`Rimuovi filtro: ${chip.label}`}
                 className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 transition hover:bg-blue-100"
               >
                 {chip.label} ×
