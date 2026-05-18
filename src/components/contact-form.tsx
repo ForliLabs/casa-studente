@@ -37,7 +37,7 @@ export function ContactForm({
       </p>
 
       {state?.success ? (
-        <div className="mt-6 space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+        <div className="mt-6 space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700" role="alert">
           <p>{state.message}</p>
           <Link href="/dashboard/messages" className="inline-flex rounded-xl bg-emerald-600 px-4 py-2 font-semibold text-white transition hover:bg-emerald-700">
             Apri la conversazione
@@ -93,7 +93,7 @@ export function ContactForm({
             />
           </label>
           {state?.error && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">
               {state.error}
             </div>
           )}

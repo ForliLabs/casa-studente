@@ -43,6 +43,12 @@ body {
   top: 0.5rem;
 }
 
+/* Focus ring for sr-only inputs inside custom radio/checkbox labels */
+label:has(> input.sr-only:focus-visible) {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
 ::selection {
   background: rgb(191 219 254);
   color: rgb(17 24 39);

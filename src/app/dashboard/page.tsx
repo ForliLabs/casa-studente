@@ -1,29 +1,44 @@
 import type { Metadata } from "next";
 import { StatCard } from "@/components/dashboard";
-import { dashboardStats, recentActivity } from "@/lib/data";
+import { requireAuth } from "@/lib/auth";
+import { getDashboardStats, getRecentActivity } from "@/lib/dashboard";
 
 export const metadata: Metadata = {
   title: "Dashboard",
   description: "Panoramica annunci, richieste e attività recenti dei proprietari su CasaStudente.",
 };
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const user = await requireAuth();
+
+  const [stats, activity] = await Promise.all([
+    getDashboardStats(user),
+    getRecentActivity(user),
+  ]);
+
+  const isLandlord = user?.role === "landlord" || user?.role === "admin";
+
   return (
     <div className="space-y-8">
       <section className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">
-          Dashboard proprietario
+          {isLandlord ? "Dashboard proprietario" : "Dashboard studente"}
         </p>
         <h1 className="mt-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-          Tieni sotto controllo annunci, richieste e performance
+          {isLandlord
+            ? "Tieni sotto controllo annunci, richieste e performance"
+            : "La tua panoramica su CasaStudente"}
         </h1>
         <p className="mt-4 max-w-3xl text-base text-gray-600">
-          Una vista unica per monitorare gli annunci attivi, leggere i messaggi degli studenti e capire quali alloggi stanno performando meglio.
+          {isLandlord
+            ? "Una vista unica per monitorare gli annunci attivi, leggere i messaggi degli studenti e capire quali alloggi stanno performando meglio."
+            : "Messaggi, preferiti, pagamenti e attività recente in un unico posto."}
         </p>
       </section>
 
-      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        {dashboardStats.map((stat) => (
+      <section aria-labelledby="stats-heading" className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <h2 id="stats-heading" className="sr-only">Statistiche principali</h2>
+        {stats.map((stat) => (
           <StatCard
             key={stat.label}
             label={stat.label}
@@ -46,19 +61,23 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-6 space-y-4">
-            {recentActivity.map((activity) => (
-              <div key={activity.id} className="rounded-2xl border border-gray-200 p-4">
+            {activity.length > 0 ? activity.map((item) => (
+              <div key={item.id} className="rounded-2xl border border-gray-200 p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="font-semibold text-gray-900">{activity.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-gray-600">{activity.description}</p>
+                    <h3 className="font-semibold text-gray-900">{item.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-gray-600">{item.description}</p>
                   </div>
                   <span className="whitespace-nowrap text-xs font-medium uppercase tracking-[0.16em] text-gray-400">
-                    {activity.time}
+                    {item.time}
                   </span>
                 </div>
               </div>
-            ))}
+            )) : (
+              <p className="py-8 text-center text-sm text-gray-500">
+                Nessuna attività recente. Le nuove interazioni appariranno qui.
+              </p>
+            )}
           </div>
         </div>
 
