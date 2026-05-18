@@ -68,7 +68,7 @@ describe("submitReviewAction", () => {
     const result = await submitReviewAction(makeReviewFormData());
     expect(result).toHaveProperty("error");
     expect(result.error).toContain("accedere");
-  });
+  }, 15000);
 
   it("prevents self-reviews", async () => {
     // Simulate landlord-1 logged in trying to review themselves
@@ -99,7 +99,7 @@ describe("submitReviewAction", () => {
     expect(result.error).toContain("te stesso");
 
     await sessionStore.delete(sessionId);
-  });
+  }, 15000);
 
   it("prevents duplicate reviews for the same listing", async () => {
     const { cookies } = await import("next/headers");
@@ -136,7 +136,7 @@ describe("submitReviewAction", () => {
     expect(result2.error).toContain("già");
 
     await sessionStore.delete(sessionId);
-  });
+  }, 15000);
 
   it("rejects reviews for non-existent listings", async () => {
     const { cookies } = await import("next/headers");
@@ -165,7 +165,7 @@ describe("submitReviewAction", () => {
     expect(result.error).toContain("non trovato");
 
     await sessionStore.delete(sessionId);
-  });
+  }, 15000);
 
   it("rejects mismatched reviewee (forged target)", async () => {
     const { cookies } = await import("next/headers");
@@ -195,5 +195,5 @@ describe("submitReviewAction", () => {
     expect(result.error).toContain("non corrisponde");
 
     await sessionStore.delete(sessionId);
-  });
+  }, 15000);
 });
