@@ -237,4 +237,4 @@ Required Vercel settings:
 
 ## 📄 License
 
-Private project — all rights reserved.
+Source code is publicly available. No open-source license has been selected yet.
