@@ -88,6 +88,20 @@ export function UserMenu({ user }: UserMenuProps) {
         >
           Notifiche
         </Link>
+        <Link
+          href="/reviews"
+          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          onClick={() => setOpen(false)}
+        >
+          Recensioni
+        </Link>
+        <Link
+          href="/status"
+          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          onClick={() => setOpen(false)}
+        >
+          Stato piattaforma
+        </Link>
         {user.role === "student" && (
           <Link
             href="/auth/verify"
@@ -95,6 +109,15 @@ export function UserMenu({ user }: UserMenuProps) {
             onClick={() => setOpen(false)}
           >
             Verifica università
+          </Link>
+        )}
+        {user.role === "admin" && (
+          <Link
+            href="/admin"
+            className="block px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+            onClick={() => setOpen(false)}
+          >
+            Admin console
           </Link>
         )}
         <form action="/api/auth/logout" method="POST">

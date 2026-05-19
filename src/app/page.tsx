@@ -10,6 +10,7 @@ import {
 import { FeatureCard, FeatureGrid } from "@/components/features";
 import { Hero } from "@/components/hero";
 import { PricingSection } from "@/components/pricing";
+import { getCurrentUser } from "@/lib/auth";
 import { listings } from "@/lib/data";
 
 const featuredHighlights = [
@@ -27,7 +28,13 @@ const featuredHighlights = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const currentUser = await getCurrentUser();
+  const dashboardHref = currentUser
+    ? "/dashboard"
+    : "/auth/login?redirect=%2Fdashboard";
+  const dashboardLabel = currentUser ? "Vai alla dashboard" : "Accedi alla dashboard";
+
   return (
     <main className="flex-1 bg-white">
       <Hero
@@ -35,8 +42,8 @@ export default function Home() {
         subtitle="La piattaforma che connette studenti e proprietari con annunci affidabili, strumenti digitali e un’esperienza pensata per chi arriva in città per studiare."
         ctaLabel="Esplora gli annunci"
         ctaHref="/listings"
-        secondaryLabel="Vai alla dashboard"
-        secondaryHref="/dashboard"
+        secondaryLabel={dashboardLabel}
+        secondaryHref={dashboardHref}
       >
         <div className="mt-12 grid gap-4 rounded-3xl border border-blue-100 bg-white/80 p-6 text-left shadow-xl shadow-blue-100/50 sm:grid-cols-3">
           {featuredHighlights.map((item) => (
@@ -148,10 +155,10 @@ export default function Home() {
               Vedi annunci
             </Link>
             <Link
-              href="/dashboard"
+              href={dashboardHref}
               className="rounded-xl border border-white/30 px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/10"
             >
-              Apri dashboard
+              {dashboardLabel}
             </Link>
           </div>
         </div>

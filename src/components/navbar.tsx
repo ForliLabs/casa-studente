@@ -125,6 +125,36 @@ export function Navbar({ brand, items, ctaLabel, ctaHref, currentLocale, user }:
               >
                 Dashboard
               </Link>
+              <Link
+                href="/notifications"
+                className="block rounded-xl px-3 py-2.5 text-base font-medium text-gray-700 transition hover:bg-gray-50"
+                onClick={() => setOpen(false)}
+              >
+                Notifiche
+              </Link>
+              <Link
+                href="/reviews"
+                className="block rounded-xl px-3 py-2.5 text-base font-medium text-gray-700 transition hover:bg-gray-50"
+                onClick={() => setOpen(false)}
+              >
+                Recensioni
+              </Link>
+              <Link
+                href="/status"
+                className="block rounded-xl px-3 py-2.5 text-base font-medium text-gray-700 transition hover:bg-gray-50"
+                onClick={() => setOpen(false)}
+              >
+                Stato piattaforma
+              </Link>
+              {user.role === "admin" && (
+                <Link
+                  href="/admin"
+                  className="block rounded-xl px-3 py-2.5 text-base font-medium text-blue-700 transition hover:bg-blue-50"
+                  onClick={() => setOpen(false)}
+                >
+                  Admin console
+                </Link>
+              )}
               <form action="/api/auth/logout" method="POST">
                 <button
                   type="submit"

@@ -16,7 +16,7 @@ export function Footer({ brand, tagline }: FooterProps) {
               <p className="mt-1 text-sm text-gray-500">{tagline}</p>
             )}
           </div>
-          <div className="mt-4 flex gap-6 md:mt-0">
+          <div className="mt-4 flex flex-wrap gap-6 md:mt-0">
             <Link href="/privacy" className="text-sm text-gray-500 hover:text-gray-700">
               Privacy
             </Link>
@@ -25,6 +25,9 @@ export function Footer({ brand, tagline }: FooterProps) {
             </Link>
             <Link href="/contact" className="text-sm text-gray-500 hover:text-gray-700">
               Contatti
+            </Link>
+            <Link href="/status" className="text-sm text-gray-500 hover:text-gray-700">
+              Stato piattaforma
             </Link>
           </div>
         </div>
