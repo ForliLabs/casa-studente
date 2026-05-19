@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff7ed"/>
+      <stop offset="1" stop-color="#fed7aa"/>
+    </linearGradient>
+    <linearGradient id="logo" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ea580c"/>
+      <stop offset="1" stop-color="#c2410c"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g transform="translate(80,80)">
+    <rect width="120" height="120" rx="26" fill="url(#logo)"/>
+    <path d="M60 22 L98 56 V98 H75 V72 H45 V98 H22 V56 Z" fill="#fff7ed"/>
+  </g>
+  <text x="80" y="320" font-family="Inter, sans-serif" font-size="86" font-weight="800" fill="#1c1917">CasaStudente</text>
+  <text x="80" y="380" font-family="Inter, sans-serif" font-size="34" font-weight="500" fill="#44403c">Verified student housing for Forlì.</text>
+  <text x="80" y="430" font-family="Inter, sans-serif" font-size="34" font-weight="500" fill="#44403c">Transparent pricing. Roommate matching. Zero scams.</text>
+  <g transform="translate(80,500)" font-family="Inter, sans-serif" font-size="22" font-weight="600" fill="#7c2d12">
+    <text>🏠 200+ verified rooms</text>
+    <text x="280">🛡️ Stripe-secured rent</text>
+    <text x="570">🌍 IT · EN · ES · FR</text>
+    <text x="860">🎓 UniBo verified</text>
+  </g>
+</svg>
