@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/feedback";
 import { FavoriteButton } from "@/components/favorite-button";
 import { NaturalLanguageSearch } from "@/components/nl-search";
+import { useToast } from "@/components/toast";
+import { saveSearchAction } from "@/lib/actions/notifications";
+import type { Listing, ListingType } from "@/lib/data";
 import {
   applyListingFilters,
   getRecommendedListings,
@@ -15,11 +18,11 @@ import {
   type ListingSortOption,
 } from "@/lib/listings-search";
 import { cn, formatAvailableFrom } from "@/lib/utils";
-import type { Listing, ListingType } from "@/lib/data";
 
 interface ListingsBrowserProps {
   listings: Listing[];
   favoriteIds?: string[];
+  canSaveSearch?: boolean;
 }
 
 const typeOptions: Array<ListingType | "tutti"> = [
@@ -40,7 +43,11 @@ const sortOptions: Array<{ value: ListingSortOption; label: string }> = [
 
 const amenitySuggestions = ["wifi", "lavatrice", "balcone", "aria condizionata"];
 
-export function ListingsBrowser({ listings, favoriteIds = [] }: ListingsBrowserProps) {
+export function ListingsBrowser({
+  listings,
+  favoriteIds = [],
+  canSaveSearch = false,
+}: ListingsBrowserProps) {
   const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
   const router = useRouter();
   const pathname = usePathname();
@@ -175,6 +182,26 @@ export function ListingsBrowser({ listings, favoriteIds = [] }: ListingsBrowserP
       onRemove: () => updateTextParam("features", (filters.features ?? []).filter((item) => item !== feature).join(",")),
     })),
   ].filter(Boolean) as Array<{ label: string; onRemove: () => void }>;
+
+  const savedSearchCriteria = {
+    zone: filters.zone ?? "",
+    minPrice: filters.minPrice ? String(filters.minPrice) : "",
+    maxPrice: filters.maxPrice ? String(filters.maxPrice) : "",
+    type: filters.type ?? "",
+    verifiedOnly: Boolean(filters.verifiedOnly),
+  };
+  const savedSearchKey = [
+    savedSearchCriteria.zone,
+    savedSearchCriteria.minPrice,
+    savedSearchCriteria.maxPrice,
+    savedSearchCriteria.type,
+    savedSearchCriteria.verifiedOnly ? "1" : "0",
+  ].join(":");
+  const savedSearchName = buildSavedSearchName(savedSearchCriteria);
+  const savedSearchSummary = buildSavedSearchSummary(savedSearchCriteria);
+  const saveSearchLoginHref = `/auth/login?redirect=${encodeURIComponent(
+    currentParams.toString() ? `/listings?${currentParams.toString()}` : "/listings"
+  )}`;
 
   return (
     <div className="grid gap-8 lg:grid-cols-[280px_minmax(0,1fr)]">
@@ -446,6 +473,30 @@ export function ListingsBrowser({ listings, favoriteIds = [] }: ListingsBrowserP
           </div>
         </div>
 
+        <div
+          id="save-search-panel"
+          className="mt-4 rounded-3xl border border-blue-200 bg-gradient-to-r from-blue-50 via-white to-indigo-50 p-5 shadow-sm"
+        >
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">
+                Alert automatici
+              </p>
+              <h3 className="mt-2 text-lg font-semibold text-gray-900">
+                Salva questa ricerca e ricevi nuovi match senza ripartire da zero
+              </h3>
+              <p className="mt-2 text-sm text-gray-600">{savedSearchSummary}</p>
+            </div>
+            <SaveSearchPrompt
+              key={savedSearchKey}
+              canSaveSearch={canSaveSearch}
+              criteria={savedSearchCriteria}
+              defaultName={savedSearchName}
+              loginHref={saveSearchLoginHref}
+            />
+          </div>
+        </div>
+
         {chips.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
             {chips.map((chip) => (
@@ -599,6 +650,134 @@ export function ListingsBrowser({ listings, favoriteIds = [] }: ListingsBrowserP
         )}
       </div>
     </div>
+  );
+}
+
+type SaveSearchCriteria = {
+  zone: string;
+  minPrice: string;
+  maxPrice: string;
+  type: string;
+  verifiedOnly: boolean;
+};
+
+type SaveSearchState = Awaited<ReturnType<typeof saveSearchAction>> | null;
+
+function buildSavedSearchName(criteria: SaveSearchCriteria) {
+  const parts = [criteria.type, criteria.zone].filter(Boolean);
+
+  if (criteria.maxPrice) {
+    parts.push(`entro €${criteria.maxPrice}`);
+  } else if (criteria.minPrice) {
+    parts.push(`da €${criteria.minPrice}`);
+  }
+
+  if (criteria.verifiedOnly) {
+    parts.push("verificati");
+  }
+
+  return parts.length > 0 ? `Alert ${parts.join(" · ")}` : "Alert annunci Forlì";
+}
+
+function buildSavedSearchSummary(criteria: SaveSearchCriteria) {
+  const parts = [criteria.type, criteria.zone].filter(Boolean);
+
+  if (criteria.minPrice && criteria.maxPrice) {
+    parts.push(`budget €${criteria.minPrice}-€${criteria.maxPrice}`);
+  } else if (criteria.maxPrice) {
+    parts.push(`budget fino a €${criteria.maxPrice}`);
+  } else if (criteria.minPrice) {
+    parts.push(`budget da €${criteria.minPrice}`);
+  }
+
+  if (criteria.verifiedOnly) {
+    parts.push("solo annunci verificati");
+  }
+
+  return parts.length > 0
+    ? `Monitoreremo ${parts.join(", ")} e ti avviseremo nella pagina notifiche.`
+    : "Tieni d’occhio tutti gli annunci attivi a Forlì e ricevi un promemoria quando arrivano nuove opportunità.";
+}
+
+function SaveSearchPrompt({
+  canSaveSearch,
+  criteria,
+  defaultName,
+  loginHref,
+}: {
+  canSaveSearch: boolean;
+  criteria: SaveSearchCriteria;
+  defaultName: string;
+  loginHref: string;
+}) {
+  const [state, formAction, isPending] = useActionState<SaveSearchState, FormData>(
+    saveSearchAction,
+    null
+  );
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    if (!state) return;
+    if (state.error) showToast(state.error, "error");
+    if (state.success && state.message) showToast(state.message, "success");
+  }, [showToast, state]);
+
+  if (!canSaveSearch) {
+    return (
+      <Link
+        href={loginHref}
+        className="inline-flex rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+      >
+        Accedi per salvare
+      </Link>
+    );
+  }
+
+  if (state?.success) {
+    return (
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700 lg:max-w-sm">
+        <p className="font-semibold text-emerald-900">Ricerca salvata</p>
+        <p className="mt-1">{state.message}</p>
+        <Link href="/notifications" className="mt-3 inline-flex font-semibold text-emerald-800 hover:text-emerald-900">
+          Apri notifiche →
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <form action={formAction} className="grid gap-3 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm lg:min-w-[360px]">
+      <input type="hidden" name="zone" value={criteria.zone} />
+      <input type="hidden" name="minPrice" value={criteria.minPrice} />
+      <input type="hidden" name="maxPrice" value={criteria.maxPrice} />
+      <input type="hidden" name="type" value={criteria.type} />
+      {criteria.verifiedOnly && <input type="hidden" name="verifiedOnly" value="on" />}
+      <label className="block">
+        <span className="text-sm font-medium text-gray-700">Nome alert</span>
+        <input
+          name="name"
+          required
+          defaultValue={defaultName}
+          className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
+        />
+      </label>
+      <label className="flex items-start gap-3 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        <input
+          type="checkbox"
+          name="notifyEmail"
+          defaultChecked
+          className="mt-0.5 h-4 w-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+        />
+        <span>Mandami anche una notifica email quando arriva un annuncio compatibile.</span>
+      </label>
+      <button
+        type="submit"
+        disabled={isPending}
+        className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
+      >
+        {isPending ? "Salvataggio in corso..." : "Salva ricerca"}
+      </button>
+    </form>
   );
 }
 

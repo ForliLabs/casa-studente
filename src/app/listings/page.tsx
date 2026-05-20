@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { ListingsBrowser } from "@/components/listings-browser";
-import { getAllListings } from "@/lib/data";
 import { getFavoriteListingIds } from "@/lib/actions/favorites";
+import { getCurrentUser } from "@/lib/auth";
+import { getAllListings } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Annunci",
@@ -9,9 +10,10 @@ export const metadata: Metadata = {
 };
 
 export default async function ListingsPage() {
-  const [listings, favoriteIds] = await Promise.all([
+  const [listings, favoriteIds, currentUser] = await Promise.all([
     getAllListings(),
     getFavoriteListingIds(),
+    getCurrentUser(),
   ]);
 
   return (
@@ -30,7 +32,7 @@ export default async function ListingsPage() {
         </div>
 
         <div className="mt-10">
-          <ListingsBrowser listings={listings} favoriteIds={favoriteIds} />
+          <ListingsBrowser listings={listings} favoriteIds={favoriteIds} canSaveSearch={!!currentUser} />
         </div>
       </div>
     </main>

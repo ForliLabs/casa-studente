@@ -58,6 +58,16 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
     landlordAccount ? getLandlordAvailability(landlordAccount.id) : Promise.resolve([]),
   ]);
   const trustScore = calculateTrustScore(landlordReviews, listing.verified, 180);
+  const similarSearchParams = new URLSearchParams({
+    zone: listing.zone,
+    type: listing.type,
+  });
+  if (listing.verified) {
+    similarSearchParams.set("verified", "1");
+  }
+  const similarSearchHref = `/listings?${similarSearchParams.toString()}`;
+  const saveSearchHref = `${similarSearchHref}#save-search-panel`;
+  const listingLoginHref = `/auth/login?redirect=${encodeURIComponent(`/listings/${listing.id}`)}`;
 
   return (
     <main className="flex-1 bg-gray-50 py-12 sm:py-16">
@@ -180,7 +190,7 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
 
             {/* Reviews for this listing (Feature 8) */}
             {listingReviews.length > 0 && (
-              <section className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+              <section id="listing-reviews" className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
                 <h2 className="text-2xl font-semibold text-gray-900">Recensioni</h2>
                 <p className="mt-2 text-sm text-gray-500">
                   {listingReviews.length} recensioni per questo annuncio
@@ -266,27 +276,77 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
               </div>
             </section>
 
-            <ContactForm
-              listingId={listing.id}
-              listingTitle={listing.title}
-              landlordName={listing.landlord.name}
-              landlordEmail={listing.landlord.email}
-              landlordId={landlordAccount?.id}
-              isLoggedIn={!!currentUser}
-              userName={currentUser?.name}
-              userEmail={currentUser?.email}
-            />
-
-            {landlordAccount && (
-              <TourRequestPanel
+            <section id="contact-landlord">
+              <ContactForm
                 listingId={listing.id}
                 listingTitle={listing.title}
-                landlordId={landlordAccount.id}
                 landlordName={listing.landlord.name}
-                availability={landlordAvailability}
+                landlordEmail={listing.landlord.email}
+                landlordId={landlordAccount?.id}
                 isLoggedIn={!!currentUser}
+                userName={currentUser?.name}
+                userEmail={currentUser?.email}
               />
+            </section>
+
+            {landlordAccount && (
+              <section id="tour-request">
+                <TourRequestPanel
+                  listingId={listing.id}
+                  listingTitle={listing.title}
+                  landlordId={landlordAccount.id}
+                  landlordName={listing.landlord.name}
+                  availability={landlordAvailability}
+                  isLoggedIn={!!currentUser}
+                />
+              </section>
             )}
+
+            <section className="rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">
+                Prossimi passi
+              </p>
+              <h3 className="mt-2 text-lg font-semibold text-gray-900">
+                Continua il percorso senza perdere questo annuncio
+              </h3>
+              <p className="mt-2 text-sm text-gray-600">
+                Contatta il proprietario, prenota una visita oppure salva una ricerca simile per ricevere nuovi match con gli stessi criteri.
+              </p>
+              <div className="mt-4 space-y-3">
+                <Link
+                  href={currentUser ? "#contact-landlord" : listingLoginHref}
+                  className="block rounded-2xl border border-blue-200 bg-white px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+                >
+                  {currentUser ? "1. Scrivi al proprietario" : "1. Accedi per contattare il proprietario"}
+                </Link>
+                {landlordAccount && (
+                  <Link
+                    href={currentUser ? "#tour-request" : listingLoginHref}
+                    className="block rounded-2xl border border-blue-200 bg-white px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+                  >
+                    {currentUser ? "2. Prenota un tour o una call" : "2. Accedi per prenotare un tour"}
+                  </Link>
+                )}
+                <Link
+                  href={saveSearchHref}
+                  className="block rounded-2xl border border-indigo-200 bg-white px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50"
+                >
+                  3. Trova annunci simili e salva un alert
+                </Link>
+                {favoriteIds.length >= 2 ? (
+                  <Link
+                    href={`/listings/compare?ids=${favoriteIds.slice(0, 4).join(",")}`}
+                    className="block rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                  >
+                    4. Confronta con i tuoi preferiti
+                  </Link>
+                ) : (
+                  <p className="rounded-2xl border border-dashed border-gray-300 bg-white px-4 py-3 text-sm text-gray-600">
+                    4. Aggiungi questo annuncio ai preferiti per confrontarlo più tardi con altre opzioni.
+                  </p>
+                )}
+              </div>
+            </section>
 
             {/* Sidebar quick actions — only genuinely conversion-relevant items */}
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">

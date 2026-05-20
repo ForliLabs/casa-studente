@@ -40,7 +40,7 @@ export async function markAllNotificationsReadAction(): Promise<void> {
   revalidatePath("/notifications");
 }
 
-export async function saveSearchAction(formData: FormData) {
+export async function saveSearchAction(_prevState: unknown, formData: FormData) {
   const user = await getCurrentUser();
   if (!user) {
     return { error: "Devi accedere per salvare una ricerca" };
@@ -65,14 +65,18 @@ export async function saveSearchAction(formData: FormData) {
       type: type || undefined,
       verifiedOnly: verifiedOnly || undefined,
     },
-    notifyEmail: notifyEmail,
+    notifyEmail,
     notifyInApp: true,
     createdAt: new Date().toISOString(),
   };
 
   await savedSearchStore.create(search);
+  revalidatePath("/listings");
   revalidatePath("/notifications");
-  return { success: true };
+  return {
+    success: true,
+    message: "Ricerca salvata. Troverai i tuoi alert nella pagina notifiche.",
+  };
 }
 
 export async function deleteSavedSearchAction(formData: FormData): Promise<void> {
