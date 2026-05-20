@@ -10,9 +10,17 @@ interface AIAssistantProps {
   size?: string;
   price?: string;
   features?: string;
+  onApply?: (text: string, lang: "it" | "en") => void;
 }
 
-export function AIListingAssistant({ type, zone, size, price, features }: AIAssistantProps) {
+export function AIListingAssistant({
+  type,
+  zone,
+  size,
+  price,
+  features,
+  onApply,
+}: AIAssistantProps) {
   const [loading, setLoading] = useState(false);
   const [descIt, setDescIt] = useState<string | null>(null);
   const [descEn, setDescEn] = useState<string | null>(null);
@@ -47,6 +55,8 @@ export function AIListingAssistant({ type, zone, size, price, features }: AIAssi
     setTimeout(() => setCopied(null), 2000);
   };
 
+  const canGenerate = Boolean(type && zone);
+
   return (
     <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
       <div className="mb-3 flex items-center gap-2">
@@ -55,41 +65,71 @@ export function AIListingAssistant({ type, zone, size, price, features }: AIAssi
       </div>
 
       <button
+        type="button"
         onClick={handleGenerate}
-        disabled={loading}
+        disabled={loading || !canGenerate}
         className="mb-3 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
       >
         {loading ? "Generazione in corso..." : "✨ Genera descrizione IT/EN"}
       </button>
 
+      {!canGenerate && (
+        <p className="mb-3 text-sm text-blue-700">
+          Seleziona almeno tipo di alloggio e zona per ottenere una proposta coerente.
+        </p>
+      )}
       {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
       {descIt && (
         <div className="space-y-3">
           <div className="rounded-lg bg-white p-3">
-            <div className="mb-1 flex items-center justify-between">
+            <div className="mb-1 flex items-center justify-between gap-3">
               <span className="text-xs font-medium text-gray-500">🇮🇹 Italiano</span>
-              <button
-                onClick={() => copyToClipboard(descIt, "it")}
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
-              >
-                {copied === "it" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                {copied === "it" ? "Copiato!" : "Copia"}
-              </button>
+              <div className="flex items-center gap-3">
+                {onApply && (
+                  <button
+                    type="button"
+                    onClick={() => onApply(descIt, "it")}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    Usa nel form
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(descIt, "it")}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
+                >
+                  {copied === "it" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  {copied === "it" ? "Copiato!" : "Copia"}
+                </button>
+              </div>
             </div>
             <p className="text-sm text-gray-700">{descIt}</p>
           </div>
           {descEn && (
             <div className="rounded-lg bg-white p-3">
-              <div className="mb-1 flex items-center justify-between">
+              <div className="mb-1 flex items-center justify-between gap-3">
                 <span className="text-xs font-medium text-gray-500">🇬🇧 English</span>
-                <button
-                  onClick={() => copyToClipboard(descEn, "en")}
-                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
-                >
-                  {copied === "en" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                  {copied === "en" ? "Copied!" : "Copy"}
-                </button>
+                <div className="flex items-center gap-3">
+                  {onApply && (
+                    <button
+                      type="button"
+                      onClick={() => onApply(descEn, "en")}
+                      className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                    >
+                      Use in form
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(descEn, "en")}
+                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
+                  >
+                    {copied === "en" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    {copied === "en" ? "Copied!" : "Copy"}
+                  </button>
+                </div>
               </div>
               <p className="text-sm text-gray-700">{descEn}</p>
             </div>

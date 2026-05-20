@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import { AIListingAssistant } from "@/components/ai-assistant";
 import { ImageUpload } from "@/components/image-upload";
 import { createListingAction } from "@/lib/actions/listings";
 
@@ -14,12 +15,39 @@ const publishingChecklist = [
 export default function NewListingPage() {
   const [state, formAction, isPending] = useActionState(createListingAction, null);
   const [photos, setPhotos] = useState<string[]>([]);
+  const [aiInputs, setAiInputs] = useState({
+    zone: "Campus",
+    type: "stanza singola",
+    size: "",
+    price: "",
+    features: "",
+    description: "",
+  });
 
   const photoSummary = useMemo(() => {
     if (photos.length === 0) return "Aggiungi almeno 3 foto per aumentare fiducia e conversione.";
     if (photos.length < 3) return "Buon inizio: aggiungi ancora qualche foto per mostrare stanza, bagno e cucina.";
     return "Ottimo: con 3+ foto l'annuncio sarà più completo e il tour virtuale verrà evidenziato automaticamente.";
   }, [photos.length]);
+
+  function updateAIField(field: keyof typeof aiInputs, value: string) {
+    setAiInputs((current) => ({ ...current, [field]: value }));
+  }
+
+  function applyAIDescription(text: string, lang: "it" | "en") {
+    setAiInputs((current) => {
+      if (lang === "it") {
+        return { ...current, description: text };
+      }
+
+      const englishBlock = `English version:\n${text}`;
+      const nextDescription = current.description.trim()
+        ? `${current.description.trim()}\n\n${englishBlock}`
+        : englishBlock;
+
+      return { ...current, description: nextDescription };
+    });
+  }
 
   return (
     <div className="space-y-8">
@@ -92,7 +120,8 @@ export default function NewListingPage() {
               <select
                 name="zone"
                 className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
-                defaultValue="Campus"
+                value={aiInputs.zone}
+                onChange={(event) => updateAIField("zone", event.target.value)}
               >
                 <option value="Centro">Centro</option>
                 <option value="Campus">Campus</option>
@@ -108,6 +137,8 @@ export default function NewListingPage() {
                 name="type"
                 required
                 className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
+                value={aiInputs.type}
+                onChange={(event) => updateAIField("type", event.target.value)}
               >
                 <option value="stanza singola">Stanza singola</option>
                 <option value="stanza doppia">Stanza doppia</option>
@@ -123,6 +154,8 @@ export default function NewListingPage() {
                 type="number"
                 required
                 min={100}
+                value={aiInputs.price}
+                onChange={(event) => updateAIField("price", event.target.value)}
                 className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
                 placeholder="360"
               />
@@ -152,6 +185,8 @@ export default function NewListingPage() {
               <input
                 name="size"
                 type="number"
+                value={aiInputs.size}
+                onChange={(event) => updateAIField("size", event.target.value)}
                 className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
                 placeholder="18"
               />
@@ -199,11 +234,30 @@ export default function NewListingPage() {
               <p className="mt-1 text-xs text-gray-400">Lascia vuoto se la data non è ancora definita.</p>
             </label>
 
+            <div className="md:col-span-2">
+              <p className="text-sm font-medium text-gray-700">Bozza assistita</p>
+              <p className="mt-2 text-sm text-gray-500">
+                Genera una descrizione pronta in italiano e inglese usando i dati già inseriti e applicala al form con un click.
+              </p>
+              <div className="mt-4">
+                <AIListingAssistant
+                  type={aiInputs.type}
+                  zone={aiInputs.zone}
+                  size={aiInputs.size}
+                  price={aiInputs.price}
+                  features={aiInputs.features}
+                  onApply={applyAIDescription}
+                />
+              </div>
+            </div>
+
             <label className="block md:col-span-2">
               <span className="text-sm font-medium text-gray-700">Descrizione</span>
               <textarea
                 name="description"
-                rows={4}
+                rows={6}
+                value={aiInputs.description}
+                onChange={(event) => updateAIField("description", event.target.value)}
                 className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
                 placeholder="Descrivi l'alloggio in dettaglio, cosa è incluso e perché è adatto a studenti fuori sede..."
               />
@@ -213,6 +267,8 @@ export default function NewListingPage() {
               <span className="text-sm font-medium text-gray-700">Caratteristiche (separate da virgola)</span>
               <input
                 name="features"
+                value={aiInputs.features}
+                onChange={(event) => updateAIField("features", event.target.value)}
                 className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500"
                 placeholder="Wi‑Fi fibra, Scrivania ampia, Lavatrice, Balcone"
               />
