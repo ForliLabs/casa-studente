@@ -23,8 +23,8 @@ const featuredHighlights = [
     value: "Centro, Campus, Stazione",
   },
   {
-    label: "Supporto lingue",
-    value: "IT · EN · ES",
+    label: "Preferenze lingua",
+    value: "AI · messaggi · formati",
   },
 ];
 
@@ -81,8 +81,8 @@ export default async function Home() {
         />
         <FeatureCard
           icon={<Globe className="h-6 w-6" />}
-          title="Multilingue"
-          description="Interfaccia e annunci pensati anche per studenti Erasmus e internazionali."
+          title="Preferenze lingua"
+          description="Scegli la lingua preferita per assistente AI, traduzioni dei messaggi e formati locali mentre completiamo la localizzazione dell&apos;interfaccia."
         />
         <FeatureCard
           icon={<CreditCard className="h-6 w-6" />}

@@ -2,16 +2,9 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { type Locale, supportedLocales } from "@/lib/i18n";
+import { localeLabels, type Locale, supportedLocales } from "@/lib/i18n";
 import { useDismissibleLayer } from "@/lib/hooks/use-dismissible-layer";
 import { useToast } from "@/components/toast";
-
-const localeLabels: Record<Locale, string> = {
-  it: "🇮🇹 Italiano",
-  en: "🇬🇧 English",
-  es: "🇪🇸 Español",
-  fr: "🇫🇷 Français",
-};
 
 const localeFlags: Record<Locale, string> = {
   it: "🇮🇹",
@@ -50,14 +43,14 @@ export function LanguageSwitcher({ currentLocale }: LanguageSwitcherProps) {
       });
 
       if (!response.ok) {
-        throw new Error("Locale non aggiornata");
+        throw new Error("Preferenza lingua non aggiornata");
       }
 
       setOpen(false);
-      showToast(`Lingua aggiornata: ${localeLabels[locale]}`, "success");
+      showToast(`Preferenza lingua aggiornata: ${localeFlags[locale]} ${localeLabels[locale]}`, "success");
       startTransition(() => router.refresh());
     } catch {
-      showToast("Non siamo riusciti a cambiare lingua. Riprova.", "error");
+      showToast("Non siamo riusciti ad aggiornare la preferenza lingua. Riprova.", "error");
     }
   }
 
@@ -75,15 +68,25 @@ export function LanguageSwitcher({ currentLocale }: LanguageSwitcherProps) {
         type="button"
         onClick={() => setOpen((value) => !value)}
         className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-gray-600 transition hover:bg-gray-100"
-        aria-label="Cambia lingua"
+        aria-label="Imposta la lingua preferita"
         aria-haspopup="menu"
         aria-expanded={open}
       >
         <span>{localeFlags[currentLocale]}</span>
+        <span className="hidden text-xs font-medium text-gray-500 sm:inline">Locale</span>
         <span className="text-xs font-medium uppercase text-gray-500">{currentLocale}</span>
       </button>
       {open && (
-        <div ref={menuRef} className="absolute right-0 top-full z-50 mt-1 w-40 rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+        <div ref={menuRef} className="absolute right-0 top-full z-50 mt-1 w-72 rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+          <div className="border-b border-gray-100 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
+              Preferenza lingua
+            </p>
+            <p className="mt-2 text-xs leading-5 text-gray-500">
+              La usiamo per assistente AI, traduzioni dei messaggi e formati locali. Alcune
+              pagine restano in italiano mentre completiamo la localizzazione dell&apos;interfaccia.
+            </p>
+          </div>
           {supportedLocales.map((locale) => (
             <button
               key={locale}
@@ -94,7 +97,16 @@ export function LanguageSwitcher({ currentLocale }: LanguageSwitcherProps) {
                 locale === currentLocale ? "font-medium text-blue-700" : "text-gray-700"
               }`}
             >
-              {localeLabels[locale]}
+              <span className="flex items-center justify-between gap-3">
+                <span>
+                  {localeFlags[locale]} {localeLabels[locale]}
+                </span>
+                {locale === currentLocale && (
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">
+                    Attiva
+                  </span>
+                )}
+              </span>
             </button>
           ))}
         </div>
