@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Orbit } from "lucide-react";
 import { StatCard } from "@/components/dashboard";
 import { requireAuth } from "@/lib/auth";
 import { getDashboardStats, getRecentActivity, getStudentQuickActionCounts } from "@/lib/dashboard";
@@ -183,6 +184,30 @@ export default async function DashboardPage() {
                 </li>
               </ol>
             )}
+          </div>
+          <div className="rounded-3xl border border-cyan-200 bg-cyan-50 p-6 shadow-sm">
+            <div className="flex items-start gap-4">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-600 text-white">
+                <Orbit className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-700">
+                  Labs & strategia
+                </p>
+                <h2 className="mt-2 text-xl font-semibold text-cyan-950">Moonshots hub</h2>
+                <p className="mt-3 text-sm leading-6 text-cyan-900">
+                  Esplora i prototipi di lungo periodo in modalità read-only: housing passport,
+                  guaranteed rent, arrival OS e gli altri esperimenti che raccontano dove può
+                  evolvere CasaStudente.
+                </p>
+                <Link
+                  href="/dashboard/moonshots"
+                  className="mt-4 inline-flex rounded-xl bg-cyan-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cyan-800"
+                >
+                  Apri il Moonshots hub
+                </Link>
+              </div>
+            </div>
           </div>
           <div className="rounded-3xl bg-slate-950 p-6 text-white shadow-sm">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-200">

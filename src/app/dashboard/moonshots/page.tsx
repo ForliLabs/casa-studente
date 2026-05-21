@@ -68,6 +68,17 @@ export default async function MoonshotsPage() {
         </div>
       </section>
 
+      <section className="rounded-2xl border border-cyan-200 bg-cyan-50 p-6">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-700">
+          Labs read-only
+        </p>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-cyan-950">
+          Questo hub rende visibili i moonshot dalla dashboard principale per chi vuole valutare la
+          direzione strategica del prodotto. I prototipi restano sperimentali: usali per capire tesi,
+          dipendenze e metriche guida, non come flussi operativi quotidiani.
+        </p>
+      </section>
+
       <section className="grid gap-4 lg:grid-cols-4">
         {innovationVectors.map((vector) => {
           const Icon = vector.icon;

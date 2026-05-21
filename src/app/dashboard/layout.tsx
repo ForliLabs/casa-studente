@@ -65,7 +65,7 @@ const dashboardSections = [
   {
     label: "Labs",
     items: [
-      { label: "Moonshots", href: "/dashboard/moonshots", icon: <Orbit className="h-5 w-5" />, roles: ["landlord", "admin"] },
+      { label: "Moonshots hub", href: "/dashboard/moonshots", icon: <Orbit className="h-5 w-5" />, roles: ["student", "landlord", "admin"] },
     ],
   },
 ] as const;
