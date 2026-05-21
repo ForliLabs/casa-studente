@@ -332,4 +332,6 @@ _Only items with material violations are listed below; covered items without fin
 
 ### Deferred items
 
-- To be updated after implementation with explicit implemented/deferred counts and any items intentionally left for follow-up.
+- Implemented in this remediation pass: **9 / 14** backlog items — #4, #35, #1, #18, #52, #31, #6, #30, and #53.
+- Deferred for follow-up: **5 / 14** backlog items — #17, #25, #26, #54, and #55.
+- Dependency note: #53 is considered implemented because surfacing the admin console now exposes the existing admin subpages through the shared admin side navigation.

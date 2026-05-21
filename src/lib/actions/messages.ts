@@ -320,7 +320,8 @@ export async function generalContactAction(_prevState: unknown, formData: FormDa
 
   return {
     success: true,
-    message: "Messaggio ricevuto! Ti risponderemo il prima possibile all'indirizzo email indicato.",
+    message:
+      "Messaggio ricevuto in questa demo. L'inoltro email al supporto non è ancora attivo, ma la richiesta è stata registrata per verifica.",
   };
 }
 

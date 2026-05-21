@@ -83,8 +83,8 @@ export function GeneralContactForm() {
       >
         {isPending ? "Invio in corso..." : "Invia messaggio"}
       </button>
-      <p className="text-xs text-gray-400">
-        Questo modulo è attualmente in modalità demo. In produzione, il messaggio verrà inviato al team di supporto via email.
+      <p className="text-xs text-gray-500">
+        In questa demo il messaggio viene validato e registrato per verifica interna, ma l&apos;inoltro email al team di supporto non è ancora attivo.
       </p>
     </form>
   );
