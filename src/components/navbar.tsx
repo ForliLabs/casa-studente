@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { type Locale } from "@/lib/i18n";
 import { useDismissibleLayer } from "@/lib/hooks/use-dismissible-layer";
+import { CampusSelector } from "@/components/campus-selector";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { UserMenu } from "@/components/user-menu";
 
@@ -19,10 +20,11 @@ interface NavbarProps {
   ctaLabel?: string;
   ctaHref?: string;
   currentLocale: Locale;
+  currentCampusId?: string;
   user?: { name: string; email: string; role: string } | null;
 }
 
-export function Navbar({ brand, items, ctaLabel, ctaHref, currentLocale, user }: NavbarProps) {
+export function Navbar({ brand, items, ctaLabel, ctaHref, currentLocale, currentCampusId, user }: NavbarProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useDismissibleLayer<HTMLDivElement>({
@@ -61,6 +63,7 @@ export function Navbar({ brand, items, ctaLabel, ctaHref, currentLocale, user }:
               {item.label}
             </Link>
           ))}
+          <CampusSelector currentCampusId={currentCampusId} />
           <LanguageSwitcher currentLocale={currentLocale} />
           {user ? (
             <UserMenu user={user} />
@@ -111,7 +114,8 @@ export function Navbar({ brand, items, ctaLabel, ctaHref, currentLocale, user }:
               {item.label}
             </Link>
           ))}
-          <div className="pt-2">
+          <div className="space-y-3 pt-2">
+            <CampusSelector currentCampusId={currentCampusId} />
             <LanguageSwitcher currentLocale={currentLocale} />
           </div>
           {user ? (

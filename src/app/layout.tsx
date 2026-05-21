@@ -89,6 +89,7 @@ export default async function RootLayout({
             ctaLabel={user ? undefined : "Pubblica annuncio"}
             ctaHref={user ? undefined : "/auth/register"}
             currentLocale={currentLocale}
+            currentCampusId={user?.campusId}
             user={user ? { name: user.name, email: user.email, role: user.role } : null}
           />
           <div id="main-content" className="flex flex-1 flex-col">{children}</div>

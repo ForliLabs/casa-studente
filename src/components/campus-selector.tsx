@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MapPin } from "lucide-react";
+import { ChevronDown, MapPin } from "lucide-react";
 import { campusStore, type Campus } from "@/lib/stores/campus";
 import { useDismissibleLayer } from "@/lib/hooks/use-dismissible-layer";
+
+const campusPreferenceKey = "casastudente-campus";
 
 interface CampusSelectorProps {
   currentCampusId?: string;
@@ -22,14 +24,36 @@ export function CampusSelector({ currentCampusId = "campus-forli", onCampusChang
   });
 
   useEffect(() => {
-    campusStore.findAll().then(setCampuses);
-  }, []);
+    let cancelled = false;
+
+    campusStore.findAll().then((availableCampuses) => {
+      if (cancelled) return;
+      setCampuses(availableCampuses);
+
+      if (typeof window === "undefined") return;
+      const storedCampusId = window.localStorage.getItem(campusPreferenceKey);
+      const preferredCampusId = availableCampuses.some((campus) => campus.id === storedCampusId)
+        ? storedCampusId
+        : currentCampusId;
+
+      if (preferredCampusId) {
+        setSelected(preferredCampusId);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentCampusId]);
 
   const selectedCampus = campuses.find((c) => c.id === selected);
 
   const handleSelect = (campus: Campus) => {
     setSelected(campus.id);
     setOpen(false);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(campusPreferenceKey, campus.id);
+    }
     onCampusChange?.(campus);
   };
 
@@ -46,18 +70,27 @@ export function CampusSelector({ currentCampusId = "campus-forli", onCampusChang
         type="button"
         onClick={() => setOpen((value) => !value)}
         className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+        aria-label="Seleziona campus"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
         <MapPin className="h-4 w-4 text-blue-600" />
+        <span className="hidden text-xs font-medium text-gray-500 sm:inline">Campus</span>
         <span>{selectedCampus?.city || "Forlì"}</span>
-        <svg className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        <ChevronDown className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
-        <div ref={menuRef} className="absolute left-0 top-full z-50 mt-1 w-72 rounded-xl border border-gray-200 bg-white p-2 shadow-lg">
+        <div ref={menuRef} className="absolute left-0 top-full z-50 mt-1 w-80 rounded-xl border border-gray-200 bg-white p-2 shadow-lg">
+          <div className="border-b border-gray-100 px-3 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
+              Multi-campus preview
+            </p>
+            <p className="mt-2 text-xs leading-5 text-gray-500">
+              Scegli il campus UniBo Romagna da esplorare. Alcuni flussi restano ancora centrati su
+              Forlì mentre estendiamo Cesena e Ravenna.
+            </p>
+          </div>
           {campuses.map((campus) => (
             <button
               key={campus.id}
@@ -72,14 +105,14 @@ export function CampusSelector({ currentCampusId = "campus-forli", onCampusChang
                 <p className={`text-sm font-medium ${campus.id === selected ? "text-blue-700" : "text-gray-900"}`}>
                   {campus.campusName}
                 </p>
-                <p className="text-xs text-gray-500">{campus.description.slice(0, 80)}...</p>
-                <p className="mt-1 text-xs text-gray-400">~{campus.studentCount.toLocaleString()} studenti</p>
+                <p className="mt-1 text-xs leading-5 text-gray-500">{campus.description}</p>
+                <p className="mt-2 text-xs text-gray-400">~{campus.studentCount.toLocaleString()} studenti</p>
               </div>
             </button>
           ))}
-          <div className="mt-1 border-t border-gray-100 pt-2">
-            <p className="px-3 py-1 text-xs text-gray-400">
-              CasaStudente è disponibile per tutti i campus UniBo Romagna
+          <div className="mt-1 border-t border-gray-100 px-3 py-3">
+            <p className="text-xs leading-5 text-gray-400">
+              La tua scelta viene salvata su questo dispositivo come preferenza di esplorazione.
             </p>
           </div>
         </div>
