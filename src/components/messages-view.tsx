@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, useOptimistic, startTransition } from "react";
+import { startTransition, useEffect, useOptimistic, useRef, useState } from "react";
+import { MessageTranslation } from "@/components/message-translation";
 import { EmptyState } from "@/components/feedback";
 import { sendMessageAction, markConversationReadAction } from "@/lib/actions/messages";
+import { type Locale } from "@/lib/i18n";
 
 interface Conversation {
   id: string;
@@ -26,6 +28,7 @@ interface Message {
 interface MessagesViewProps {
   currentUserId: string;
   currentUserName: string;
+  preferredLocale: Locale;
   initialSelectedId?: string;
   conversations: Conversation[];
   messagesByConversation: Record<string, Message[]>;
@@ -34,6 +37,7 @@ interface MessagesViewProps {
 export function MessagesView({
   currentUserId,
   currentUserName,
+  preferredLocale,
   initialSelectedId,
   conversations,
   messagesByConversation,
@@ -274,6 +278,9 @@ export function MessagesView({
                     >
                       {message.content}
                     </div>
+                    {!isOwnMessage && !isOptimistic && (
+                      <MessageTranslation text={message.content} targetLocale={preferredLocale} />
+                    )}
                     <p className={`mt-1 text-xs text-gray-300 ${isOwnMessage ? "text-right" : ""}`}>
                       {new Date(message.createdAt).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
                       {message.read && isOwnMessage && " ✓✓"}

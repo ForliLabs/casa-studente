@@ -9,6 +9,7 @@ import {
   chatWithAssistant,
   type ChatMessage,
 } from "@/lib/services/ai";
+import { supportedLocales, type Locale } from "@/lib/i18n";
 import { aiGenerateSchema, nlSearchSchema } from "@/lib/validation";
 
 export async function generateListingDescription(formData: FormData) {
@@ -58,8 +59,17 @@ export async function naturalLanguageSearch(formData: FormData) {
 }
 
 export async function translateMessage(formData: FormData) {
-  const text = formData.get("text") as string;
-  const targetLang = formData.get("targetLang") as string || "en";
+  const user = await getCurrentUser();
+  if (!user) return { error: "Devi accedere" };
+
+  const { allowed } = checkRateLimit(`ai:${user.id}`, RATE_LIMITS.aiGenerate);
+  if (!allowed) return { error: "Limite di traduzioni raggiunto. Riprova domani." };
+
+  const text = (formData.get("text") as string | null)?.trim();
+  const targetLangRaw = (formData.get("targetLang") as string | null) ?? "en";
+  const targetLang: Locale = supportedLocales.includes(targetLangRaw as Locale)
+    ? (targetLangRaw as Locale)
+    : "en";
 
   if (!text) return { error: "Testo mancante" };
 
@@ -69,7 +79,7 @@ export async function translateMessage(formData: FormData) {
     success: true,
     originalText: text,
     translatedText: result.translatedText,
-    sourceLang: result.detectedLang || "auto-detected",
+    sourceLang: result.detectedLang || "auto",
     targetLang,
   };
 }

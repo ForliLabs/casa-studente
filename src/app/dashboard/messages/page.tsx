@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
-import { conversationStore, messageStore } from "@/lib/stores";
 import { MessagesView } from "@/components/messages-view";
+import { getCurrentUser } from "@/lib/auth";
+import { getLocaleFromCookie } from "@/lib/i18n";
+import { conversationStore, messageStore } from "@/lib/stores";
 
 export const metadata: Metadata = {
   title: "Messaggi",
@@ -17,11 +19,13 @@ export default async function DashboardMessagesPage({
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login");
 
-  const [{ conversation: requestedConversation } = {}, conversations, messages] = await Promise.all([
+  const [{ conversation: requestedConversation } = {}, conversations, messages, cookieStore] = await Promise.all([
     searchParams,
     conversationStore.findAll(),
     messageStore.findAll(),
+    cookies(),
   ]);
+  const currentLocale = getLocaleFromCookie(cookieStore.get("locale")?.value);
 
   const visibleConversations = conversations.filter((conversation) => conversation.participantIds.includes(user.id));
   const sortedConversations = visibleConversations.sort(
@@ -53,6 +57,7 @@ export default async function DashboardMessagesPage({
       <MessagesView
         currentUserId={user.id}
         currentUserName={user.name}
+        preferredLocale={currentLocale}
         initialSelectedId={requestedConversation}
         conversations={sortedConversations}
         messagesByConversation={messagesByConversation}
