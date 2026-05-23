@@ -16,6 +16,7 @@ import {
   Orbit,
   Scale,
   Shield,
+  Sparkles,
   Star,
   TrendingUp,
   Users,
@@ -42,6 +43,7 @@ const dashboardSections = [
     items: [
       { label: "Percorso", href: "/dashboard/journey", icon: <Map className="h-5 w-5" />, roles: ["student", "admin"] },
       { label: "Per Te", href: "/dashboard/for-you", icon: <Heart className="h-5 w-5" />, roles: ["student", "admin"] },
+      { label: "Assistente casa AI", href: "/dashboard/housing-assistant", icon: <Sparkles className="h-5 w-5" />, roles: ["student", "landlord", "admin"] },
       { label: "Tour", href: "/dashboard/tours", icon: <Video className="h-5 w-5" />, roles: ["student", "landlord", "admin"] },
       { label: "Gruppi", href: "/dashboard/groups", icon: <Users className="h-5 w-5" />, roles: ["student", "admin"] },
       { label: "SSO Università", href: "/dashboard/university-sso", icon: <GraduationCap className="h-5 w-5" />, roles: ["student", "admin"] },
