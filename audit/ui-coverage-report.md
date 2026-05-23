@@ -274,30 +274,35 @@ _Only items with material violations are listed below; covered items without fin
 - Where: src/components/language-switcher.tsx; multiple src/app pages
 - Recommended pattern: Keep the change inside the current route/component flow, use existing Tailwind/UI primitives, and prefer progressive disclosure over new standalone pages unless the capability is genuinely missing.
 - Effort: [L]
+- Outcome (2026-05-23): Implemented by reframing the switcher as a locale preference, adding honest helper copy in the menu, and aligning the home-page language claim with AI, messaging, and locale-format coverage instead of full-UI translation.
 
 **#25 — AI message translation**
 - What to fix: Add per-message translation affordances in the inbox when multilingual use cases matter.
 - Where: src/lib/actions/ai.ts; src/components/messages-view.tsx
 - Recommended pattern: Keep the change inside the current route/component flow, use existing Tailwind/UI primitives, and prefer progressive disclosure over new standalone pages unless the capability is genuinely missing.
 - Effort: [M]
+- Outcome (2026-05-23): Implemented with per-message inbox translation controls that target the user&apos;s current locale preference and use the existing AI translation action with auth and rate-limit guards.
 
 **#26 — AI housing assistant chat**
 - What to fix: Expose the assistant from a visible page or defer and remove product claims until launched.
 - Where: src/lib/actions/ai.ts; src/lib/services/ai.ts
 - Recommended pattern: Keep the change inside the current route/component flow, use existing Tailwind/UI primitives, and prefer progressive disclosure over new standalone pages unless the capability is genuinely missing.
 - Effort: [M]
+- Outcome (2026-05-23): Implemented by launching `/dashboard/housing-assistant`, wiring it to the existing chat action/service, and surfacing a visible dashboard navigation entry for the assistant.
 
 **#54 — Moonshots hub**
 - What to fix: Keep them in labs but add context text or a visible labs entry where appropriate.
 - Where: src/app/dashboard/layout.tsx; src/app/dashboard/moonshots/page.tsx
 - Recommended pattern: Keep the change inside the current route/component flow, use existing Tailwind/UI primitives, and prefer progressive disclosure over new standalone pages unless the capability is genuinely missing.
 - Effort: [S]
+- Outcome (2026-05-23): Implemented by exposing the Moonshots hub to every dashboard role, adding a visible launcher card from the dashboard overview, and clarifying the page as a read-only labs surface.
 
 **#55 — Multi-campus selector**
 - What to fix: Either mount the selector in a meaningful discovery surface or defer and document it as dormant.
 - Where: src/components/campus-selector.tsx; src/lib/stores/campus.ts
 - Recommended pattern: Keep the change inside the current route/component flow, use existing Tailwind/UI primitives, and prefer progressive disclosure over new standalone pages unless the capability is genuinely missing.
 - Effort: [S]
+- Outcome (2026-05-23): Implemented by mounting the selector in the desktop/mobile navbar, persisting the chosen campus locally, and adding preview copy that honestly frames the Forlì-first multi-campus rollout.
 
 ## Phase 5 — Priority Stack Rank
 
@@ -332,6 +337,8 @@ _Only items with material violations are listed below; covered items without fin
 
 ### Deferred items
 
-- Implemented in this remediation pass: **9 / 14** backlog items — #4, #35, #1, #18, #52, #31, #6, #30, and #53.
-- Deferred for follow-up: **5 / 14** backlog items — #17, #25, #26, #54, and #55.
+- Implemented in the initial remediation pass: **9 / 14** backlog items — #4, #35, #1, #18, #52, #31, #6, #30, and #53.
+- Implemented in the follow-up remediation pass: **5 / 14** backlog items — #17, #25, #26, #54, and #55.
+- Remaining deferred backlog items: **0 / 14**.
+- Total new commits since `083e495`: **6** — 5 feature commits for the deferred items plus this final audit update.
 - Dependency note: #53 is considered implemented because surfacing the admin console now exposes the existing admin subpages through the shared admin side navigation.
